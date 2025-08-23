@@ -145,10 +145,6 @@ input=114467
 
 # 2. 为什么会这样？
 
-:::note
-本节针对 x86_64 Linux，请 Windows 读者自行搜索 Windows 平台下的 C 编译器的链接步骤（虽然大同小异就是了）。
-:::
-
 好了好了扯远啦，我们来看看为什么这两种编译器编译出来的程序有不同的行为。
 
 我们知道，从一个 `.c` 源代码文件到可执行程序共分为四步：
@@ -353,3 +349,190 @@ main:                                   # @main
 	.addrsig_sym __isoc99_scanf
 	.addrsig_sym printf
 ```
+来看看`gcc.s`：
+``` asm showLineNumbers startLineNumber=12
+.LFB0:
+  .cfi_startproc
+  pushq  %rbp
+  .cfi_def_cfa_offset 16
+  .cfi_offset 6, -16
+  movq  %rsp, %rbp
+  .cfi_def_cfa_register 6
+  subq  $32, %rsp           # 预留 32 字节栈帧给局部变量
+  movq  %fs:40, %rax
+  movq  %rax, -8(%rbp)
+  xorl  %eax, %eax
+  movl  $0, -24(%rbp)       # sum = 0;
+  movl  $0, -20(%rbp)       # i = 0;
+.L4:
+  movl	$0, -24(%rbp)       # sum = 0;
+  leaq	-13(%rbp), %rax     # input[0] 的位置在-13(%rbp)
+    ...
+```
+
+再看看`clang.s`是如何处理的：
+
+``` asm showLineNumbers startLineNumber=6
+main:                                   # @main
+	.cfi_startproc
+# %bb.0:
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	subq	$32, %rsp       # 预留 32 字节栈帧给局部变量
+	movl	$0, -4(%rbp)    # 返回值临时保留位，本程序未使用
+	movl	$0, -8(%rbp)    # sum = 0;
+	movl	$0, -12(%rbp)   # i = 0;
+.LBB0_1:                                # =>This Loop Header: Depth=1
+                                        #     Child Loop BB0_2 Depth 2
+	movl	$0, -8(%rbp)    # sum = 0;
+	leaq	-17(%rbp), %rsi # input[0] 的位置在-17(%rbp)
+    ...
+```
+
+好啦，这下就清楚了！
+
+我们来画一下栈：
+
+### GCC 栈
+|位置|变量|
+|---|---|
+|-9| input[4] |
+|-10| input[3] |
+|-11| input[2] |
+|-12| input[1] |
+|-13| input[0] |
+|...|...|
+|-20| i |
+|-24| sum |
+
+### Clang 栈
+|位置|变量|
+|---|---|
+|-8|sum|
+|-12|i|
+|-13| input[4] |
+|-14| input[3] |
+|-15| input[2] |
+|-16| input[1] |
+|-17| input[0] |
+
+因此，我们得出了结论：
+
+**GCC为`i`和`input[0]`之间留足了栈帧，并且`input[4]`之后也没有变量可以影响循环，因此没出问题。**
+**而Clang让`input[4]`和`i`紧靠在一起，增加了数组越界的风险。**
+
+## 2. 汇编
+## 3. 链接
+
+哎呀这两个标题和本文没关系，加上只是为了目录更好看（
+
+# 3. 验证猜想
+
+我们用 GCC 看看`input[-7]`？按道理就是`i`了吧！
+修改程序为
+
+```c title="test.c"
+#include <stdio.h>
+
+int main(void)
+{
+    int sum = 0, i = 0;
+    char input[5];
+
+    while (1) {
+        sum = 0;
+        scanf("%s", input);
+        for (i = 0; input[i] != '\0'; i++)
+            sum = sum*10 + input[i] - '0';
+        printf("input=%d\n", sum);
+        printf("%d\n", input[-7]);
+    }
+    return 0;
+}
+```
+
+运行程序：
+``` sh
+$ gcc test.c -o test
+$ ./test
+12345
+input=12345
+5
+```
+大功告成！**果然，`input[-7]` 就是 `i`！**
+
+# 4. 如何规避风险？
+
+> *`-O0`了吗？`-fsanitize=address`了吗？快加上！*
+
+一位群友如是说。
+好吧好吧，我们加上这两个参数再编译一次试试：
+``` sh
+$ gcc -O0 -fsanitize=address test.c -o test
+$ ./test
+1234567
+=================================================================
+==16748==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x7b4c18f00025 at pc 0x7f4c1ba6e51d bp 0x7ffdce2744c0 sp 0x7ffdce273c48
+WRITE of size 8 at 0x7b4c18f00025 thread T0
+    #0 0x7f4c1ba6e51c in scanf_common /usr/src/debug/gcc/gcc/libsanitizer/sanitizer_common/sanitizer_common_interceptors_format.inc:342
+    #1 0x7f4c1ba8edee in __isoc23_vscanf /usr/src/debug/gcc/gcc/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:1554
+    #2 0x7f4c1ba8f5f5 in __isoc23_scanf /usr/src/debug/gcc/gcc/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:1584
+    #3 0x564e475b9254 in main (/home/sakimidare/CLionProjects/c_study/test+0x1254) (BuildId: 35fabe8824d13d3c1ca4e2836107a3b16992a4a9)
+    #4 0x7f4c1b627674  (/usr/lib/libc.so.6+0x27674) (BuildId: 4fe011c94a88e8aeb6f2201b9eb369f42b4a1e9e)
+    #5 0x7f4c1b627728 in __libc_start_main (/usr/lib/libc.so.6+0x27728) (BuildId: 4fe011c94a88e8aeb6f2201b9eb369f42b4a1e9e)
+    #6 0x564e475b90d4 in _start (/home/sakimidare/CLionProjects/c_study/test+0x10d4) (BuildId: 35fabe8824d13d3c1ca4e2836107a3b16992a4a9)
+
+Address 0x7b4c18f00025 is located in stack of thread T0 at offset 37 in frame
+    #0 0x564e475b91b8 in main (/home/sakimidare/CLionProjects/c_study/test+0x11b8) (BuildId: 35fabe8824d13d3c1ca4e2836107a3b16992a4a9)
+
+  This frame has 1 object(s):
+    [32, 37) 'input' (line 6) <== Memory access at offset 37 overflows this variable
+HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+      (longjmp and C++ exceptions *are* supported)
+SUMMARY: AddressSanitizer: stack-buffer-overflow (/home/sakimidare/CLionProjects/c_study/test+0x1254) (BuildId: 35fabe8824d13d3c1ca4e2836107a3b16992a4a9) in main
+Shadow bytes around the buggy address:
+  0x7b4c18effd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18effe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18effe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18efff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18efff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x7b4c18f00000: f1 f1 f1 f1[05]f3 f3 f3 00 00 00 00 00 00 00 00
+  0x7b4c18f00080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18f00100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18f00180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18f00200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x7b4c18f00280: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==16748==ABORTING
+```
+
+看得出来，加上参数确实有助于规避数组越界风险。
+
+**不过，最有效的方法还是事先考虑好所有情况，防范任何可能出现的 Bug！**~~（酒吧点炒饭.txt）~~
+
+# 4. 写在最后
+
+这是我第一次写这种类型的文章，算是对自己独立解决问题能力的一次检验吧！
+
+~~也不知道会不会有人看这篇文章，当作日记得了。~~ 如果有人看到这里，感谢大家阅读！
