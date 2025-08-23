@@ -206,8 +206,8 @@ int main(void)
 
 
 ``` sh
-gcc -S gcc.i -o gcc.s
-clang -S clang.i -o clang.s
+$ gcc -S gcc.i -o gcc.s
+$ clang -S clang.i -o clang.s
 ```
 
 把这两个文件都贴出来：
