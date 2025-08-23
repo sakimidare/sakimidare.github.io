@@ -243,3 +243,68 @@ a.card-github.fetch-error
   transition-property: all
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1)
   transition-duration: 0.15s
+
+a.card-hyperlink
+  display: block
+  background: var(--license-block-bg)
+  position: relative
+  margin: 0.5rem 0
+  padding: 1.1rem 1.5rem
+  color: var(--tw-prose-body)
+  border-radius: var(--radius-large)
+  text-decoration: none
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1)
+
+  &:hover
+    background-color: var(--btn-regular-bg-hover)
+    .hc-title
+      color: var(--btn-content)
+    .hc-description
+      color: var(--tw-prose-headings)
+
+  &:active
+    scale: 0.98
+    background-color: var(--btn-regular-bg-active)
+
+  .hc-titlebar
+    display: flex
+    align-items: center
+    gap: 0.75rem
+    margin-bottom: 0.5rem
+    .hc-avatar
+      width: 2.5rem
+      height: 2.5rem
+      border-radius: 50%
+      background-size: cover
+      background-position: center
+    .hc-title
+      font-size: 1.25rem
+      font-weight: 500
+      color: var(--tw-prose-headings)
+
+  .hc-description
+    font-size: 1rem
+    font-weight: 300
+    line-height: 1.5rem
+    color: var(--tw-prose-body)
+    white-space: normal
+    word-wrap: break-word
+    overflow-wrap: break-word
+
+a.card-hyperlink.fetch-waiting
+  pointer-events: none
+  opacity: 0.7
+  .hc-description, .hc-title, .hc-avatar
+    background-color: var(--tw-prose-body)
+    color: transparent
+    opacity: 0.5
+    animation: pulsate 2s infinite linear
+    user-select: none
+
+@keyframes pulsate
+  0%
+    opacity: 0.15
+  50%
+    opacity: 0.25
+  100%
+    opacity: 0.15
