@@ -4,7 +4,7 @@ published: 2025-08-23
 description: '数组越界不报错？有点意思'
 image: ''
 tags: [Programming, C]
-category: 'Journal'
+category: 'Journals'
 draft: false 
 lang: ''
 ---
