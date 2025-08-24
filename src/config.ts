@@ -60,15 +60,15 @@ export const profileConfig: ProfileConfig = {
 	links: [
 		{
 			name: "Twitter",
-			icon: "fa6-brands:twitter", // Visit https://icones.js.org/ for icon codes
+			icon: "material-symbols:mail-rounded", // Visit https://icones.js.org/ for icon codes
 			// You will need to install the corresponding icon set if it's not already included
 			// `pnpm add @iconify-json/<icon-set-name>`
-			url: "https://twitter.com",
+			url: "mailto:sakimidare@outlook.com",
 		},
 		{
-			name: "Steam",
-			icon: "fa6-brands:steam",
-			url: "https://store.steampowered.com",
+			name: "Bilibili",
+			icon: "fa6-brands:bilibili",
+			url: "https://space.bilibili.com/285741399",
 		},
 		{
 			name: "GitHub",
