@@ -47,7 +47,7 @@ const Comments = () => {
 				<Giscus
 					id={id}
 					repo="sakimidare/sakimidare.github.io"
-					repoId="R_kgDOKeudTw"
+					repoId="R_kgDOPiar0w"
 					category="Announcements"
 					categoryId="DIC_kwDOPiar084CuhyB"
 					mapping="title"
