@@ -20,6 +20,4 @@
 ::github{repo="sakimidare/sakimidare.github.io"}
 
 > ### Sources of images used in this site
-> - [星と少女](https://www.pixiv.net/artworks/108916539) by [Stella](https://www.pixiv.net/users/93273965)
-> - [Rabbit - v1.4 Showcase](https://civitai.com/posts/586908) by [Rabbit_YourMajesty](https://civitai.com/user/Rabbit_YourMajesty)
-> - [散々でいる - イラスト](https://x.com/Haru57928031/status/1553704618634670081/) by [Haる](https://x.com/Haru57928031)
+> - [散々でいる - イラスト](https://x.com/Haru57928031/status/1553704618634670081/) [「晴れのちラムネ🎸𓈒𓏸」](https://x.com/Haru57928031/status/1738144926268092672/) by [Haる](https://x.com/Haru57928031)
