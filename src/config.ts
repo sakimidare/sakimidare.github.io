@@ -59,7 +59,7 @@ export const profileConfig: ProfileConfig = {
 	bio: "心臓は点滅するかしら……",
 	links: [
 		{
-			name: "Twitter",
+			name: "Email",
 			icon: "material-symbols:mail-rounded", // Visit https://icones.js.org/ for icon codes
 			// You will need to install the corresponding icon set if it's not already included
 			// `pnpm add @iconify-json/<icon-set-name>`
