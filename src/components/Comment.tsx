@@ -1,4 +1,5 @@
 import Giscus from "@giscus/react";
+import { Theme } from "@swup/astro";
 import * as React from "react";
 
 const id = "inject-comments";
