@@ -1,5 +1,3 @@
-@import url("https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Latin/MiSansLatin-Medium.min.css");
-
 @tailwind components;
 
 @layer components {
