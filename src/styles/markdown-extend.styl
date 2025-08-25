@@ -258,8 +258,13 @@ a.card-hyperlink
 
   &:hover
     background-color: var(--btn-regular-bg-hover)
-    .hc-title
+
+    .hc-titlebar
       color: var(--btn-content)
+
+      .hc-title
+        color: var(--btn-content)
+    
     .hc-description
       color: var(--tw-prose-headings)
 
@@ -281,8 +286,12 @@ a.card-hyperlink
       background-position: center
     .hc-title
       font-size: 1.25rem
-      font-weight: 500
+      font-weight: bold
       color: var(--tw-prose-headings)
+      white-space: normal
+      word-wrap: break-word
+      overflow-wrap: break-word
+      flex: 1 1 auto
 
   .hc-description
     font-size: 1rem
