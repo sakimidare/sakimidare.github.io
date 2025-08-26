@@ -85,7 +85,7 @@ Copyleft 2001 by D.H.Grand(nOBODY/Ginux), 2010 by Gasolin, 2015 by Ryan Wu
 因此，总结一下：如果一段文字看着是 AI 生成的，或者你打算向 AI 问问题，请先认为你看到的内容一个字都不能信。也请不要把“它说的对不对啊”的工作推给别人，因为比起对 LLM 缝缝补补，人类自己早就能把问题解决掉了。
 :::
 
-*以上段落摘自[给新用户的关于如何不去弄坏 Arch Linux 系统的建议](https://wiki.archlinuxcn.org/wiki/%E5%BB%BA%E8%AE%AE%E9%98%85%E8%AF%BB/%E7%BB%99%E6%96%B0%E7%94%A8%E6%88%B7%E7%9A%84%E5%85%B3%E4%BA%8E%E5%A6%82%E4%BD%95%E4%B8%8D%E5%8E%BB%E5%BC%84%E5%9D%8F_Arch_Linux_%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%BB%BA%E8%AE%AE#%E8%B0%A8%E6%85%8E%E5%AF%B9%E5%BE%85_LLM_%E7%BB%99%E5%87%BA%E7%9A%84%E5%86%85%E5%AE%B9)*
+*以上段落摘自[给新用户的关于如何不去弄坏 Arch Linux 系统的建议](https://wiki.archlinuxcn.org/wiki/%E5%BB%BA%E8%AE%AE%E9%98%85%E8%AF%BB/%E7%BB%99%E6%96%B0%E7%94%A8%E6%88%B7%E7%9A%84%E5%85%B3%E4%BA%8E%E5%A6%82%E4%BD%95%E4%B8%8D%E5%8E%BB%E5%BC%84%E5%9D%8F_Arch_Linux_%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%BB%BA%E8%AE%AE#%E8%B0%A8%E6%85%8E%E5%AF%B9%E5%BE%85_LLM_%E7%BB%99%E5%87%BA%E7%9A%84%E5%86%85%E5%AE%B9)。*
 
 当你提出问题的时候，请先表明你已经做了上述的努力；这将有助于树立你并不是一个不劳而获且浪费别人的时间的提问者。如果你能一并表达在做了上述努力的过程中所**学到**的东西会更好，因为我们更乐于回答那些表现出能从答案中学习的人的问题。
 
