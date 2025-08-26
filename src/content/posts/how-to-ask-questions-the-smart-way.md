@@ -73,6 +73,8 @@ Copyleft 2001 by D.H.Grand(nOBODY/Ginux), 2010 by Gasolin, 2015 by Ryan Wu
   7. 如果你是程序开发者，请尝试阅读源代码以找到答案。
   8. *谨慎使用 LLM 获取答案 (本站编者注)*。
 
+<a id="LLM"></a>
+
 :::warning
 [LLM](https://en.wikipedia.org/wiki/Large_Language_Model)，大型语言模型（也就是 OpenAI 的 ChatGPT，Anthropic 的 Claude，Google 的 Gemini，深度求索的 DeepSeek 等 “AI”），看似是人类可以向 AI 询问任何问题，AI 就会给出看着非常可信的答案。有人可能会觉得如获至宝，看到有人问问题就把问题丢给它们问，再把回答随便贴上去。
 
@@ -85,7 +87,9 @@ Copyleft 2001 by D.H.Grand(nOBODY/Ginux), 2010 by Gasolin, 2015 by Ryan Wu
 因此，总结一下：如果一段文字看着是 AI 生成的，或者你打算向 AI 问问题，请先认为你看到的内容一个字都不能信。也请不要把“它说的对不对啊”的工作推给别人，因为比起对 LLM 缝缝补补，人类自己早就能把问题解决掉了。
 :::
 
+:::note
 *以上段落摘自[给新用户的关于如何不去弄坏 Arch Linux 系统的建议](https://wiki.archlinuxcn.org/wiki/%E5%BB%BA%E8%AE%AE%E9%98%85%E8%AF%BB/%E7%BB%99%E6%96%B0%E7%94%A8%E6%88%B7%E7%9A%84%E5%85%B3%E4%BA%8E%E5%A6%82%E4%BD%95%E4%B8%8D%E5%8E%BB%E5%BC%84%E5%9D%8F_Arch_Linux_%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%BB%BA%E8%AE%AE#%E8%B0%A8%E6%85%8E%E5%AF%B9%E5%BE%85_LLM_%E7%BB%99%E5%87%BA%E7%9A%84%E5%86%85%E5%AE%B9)。*
+:::
 
 当你提出问题的时候，请先表明你已经做了上述的努力；这将有助于树立你并不是一个不劳而获且浪费别人的时间的提问者。如果你能一并表达在做了上述努力的过程中所**学到**的东西会更好，因为我们更乐于回答那些表现出能从答案中学习的人的问题。
 
@@ -640,6 +644,9 @@ Jeff Bigler 的观察总结和这个相关也值得一读 (**[tact filters](http
 
 **如果你决定回答，就请给出好的答案。** 当别人正在用错误的工具或方法时别建议笨拙的权宜之计（workaround），应推荐更好的工具，重新界定问题。
 
+:::warning
+[不要使用 LLM 不懂装懂！](#LLM)
+:::
 **正面地回答问题！** 如果这个提问者已经很深入的研究而且也表明已经试过 X 、 Y 、 Z 、 A 、 B 、 C 但没得到结果，回答 `试试看 A 或是 B` 或者 `试试 X 、 Y 、 Z 、 A 、 B 、 C` 并附上一个链接一点用都没有。
 
 **帮助你的社区从问题中学习。** 当回复一个好问题时，问问自己`如何修改相关文件或常见问题文件以免再次解答同样的问题？`，接着再向文件维护者发一份补丁。
