@@ -46,8 +46,8 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.About,
 		LinkPreset.Friends,
 		{
-			name: "GitHub",
-			url: "https://github.com/sakimidare/sakimidare.github.io", // Internal links should not include the base path, as it is automatically added
+			name: "C Programming",
+			url: "https://c.sakimidare.top", // Internal links should not include the base path, as it is automatically added
 			external: true, // Show an external link icon and will open in a new tab
 		},
 	],
