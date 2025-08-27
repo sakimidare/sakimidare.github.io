@@ -9,3 +9,5 @@
 :::
 :::hyperlink{href="https://onear.eu.org" title="Onear's Blog" avatar="https://q1.qlogo.cn/g?b=qq&nk=122441928&s=640" description="Onear's Blog"}
 :::
+:::hyperlink{href="https://blog.y11han.icu" title="Y11Han's ICU" avatar="https://q1.qlogo.cn/g?b=qq&nk=2172029629&s=640" description="该病房一切内容不构成投资建议"}
+:::
