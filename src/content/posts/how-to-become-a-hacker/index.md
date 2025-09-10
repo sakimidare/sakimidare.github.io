@@ -73,19 +73,25 @@ Copyright © 2001 Eric S. Raymond
 
 或许下面的这首现代禅诗很好的阐述了这个意思：
 
+:::tip
+To follow the path:  
+沿着这样一条道路：
 
-> To follow the path:
-> 沿着这样一条道路：
-> look to the master,
-> 关注大师，
-> follow the master,
-> 跟随大师，
-> walk with the master,
-> 与大师同行，
-> see through the master,
-> 洞察大师，
-> become the master.
-> 成为大师。
+look to the master,  
+关注大师，
+
+follow the master,  
+跟随大师，
+
+walk with the master,  
+与大师同行，
+
+see through the master,  
+洞察大师，
+
+become the master.  
+成为大师。  
+:::
 
 如果你想成为一名黑客，反复阅读以下内容直到你相信它们：
 
@@ -137,7 +143,7 @@ Copyright © 2001 Eric S. Raymond
 
 1. [学习编程](#学习编程)
 2. [获取一个开源的Unix并学习运行和使用它](#获取一个开源的Unix并学习运行和使用它)
-3. [学习使用万维网（World Wide Web，WWW）和HTML（超文本标记语言）](#学习使用万维网（World Wide Web，WWW）和HTML（超文本标记语言）)
+3. [学习使用万维网（World Wide Web，WWW）和HTML（超文本标记语言）](#学习使用万维网world-wide-webwww和html超文本标记语言)
 4. [学习实用英语](#学习实用英语)
 
 黑客的态度很重要，但技能更重要。态度不能替代能力，在被别的黑客称你为黑客之前，你有一些基本技能需要掌握。
