@@ -398,7 +398,7 @@ Q: [我需要什么样的机器配置？](#hardware)<br>
 Q: [我想做贡献。你能帮我挑选一个问题来处理吗？](#started2)<br>
 Q: [我得因此憎恨和反对Microsoft吗？](#MS_hater)<br>
 Q: [但开放源代码软件不会使程序员丢饭碗吗？](#no_living)<br>
-Q: [哪里有免费的Unix？](#problems)
+Q: [哪里有免费的Unix？](#problems)<br>
 
 Q: <a name="hacker_already">如何证明我已经是一名黑客了？</a>
 
