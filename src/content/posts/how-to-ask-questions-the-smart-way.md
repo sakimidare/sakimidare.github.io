@@ -1,9 +1,9 @@
 ---
-title: 【转载】提问的智慧
+title: 提问的智慧
 published: 2025-08-26
 description: '问问题之前，看看这篇文章吧，求求了'
 image: ''
-tags: [Manual]
+tags: [Manual, 转载]
 category: 'Articles'
 draft: false 
 lang: ''

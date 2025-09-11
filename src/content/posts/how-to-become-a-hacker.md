@@ -1,9 +1,9 @@
 ---
-title: 【转载】如何成为黑客
+title: 如何成为黑客
 published: 2025-09-10
 description: 'How To Become A Hacker, Eric Steven Raymond, Thyrsus Enterprises, < esr@thyrsus.com >'
 image: ''
-tags: [Manual]
+tags: [Manual, 转载]
 category: 'Articles'
 draft: false 
 lang: ''
