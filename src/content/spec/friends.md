@@ -11,3 +11,5 @@
 :::
 :::hyperlink{href="https://blog.y11han.icu" title="Y11Han's ICU" avatar="https://q1.qlogo.cn/g?b=qq&nk=2172029629&s=640" description="该病房一切内容不构成投资建议"}
 :::
+:::hyperlink{href="https://www.yorozumoon.cn/" title="井枝万事屋" avatar="https://www.yorozumoon.cn/images/Moonhalf_head.png" description="濂珠沉葬，玉碎琉璃"}
+:::
