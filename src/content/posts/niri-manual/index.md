@@ -61,8 +61,8 @@ Niri 并不像 KDE Plasma 和 Xfce 一样附带了一系列 GUI 程序可以开�
 你可以用这两条命令：
 
 ```sh
-sudo pacman -S niri xdg-desktop-portal-gtk xdg-desktop-portal-gnome konsole swaybg swayidle hyprlock xwayland-satellite dolphin sddm brightnessctl wireplumber grim flameshot breeze wshowkeys-git fcitx5 fcitx5-qt fcitx5-chinese-addons blueman noto-fonts
-yay -S noctalia-shell vicinae ttf-jetbrains-mono misans
+sudo pacman -S niri xdg-desktop-portal-gtk xdg-desktop-portal-gnome konsole swaybg swayidle hyprlock xwayland-satellite dolphin sddm brightnessctl wireplumber grim flameshot breeze wshowkeys-git fcitx5 fcitx5-qt fcitx5-chinese-addons blueman noto-fonts libnotify pipewire pipewire-pulse
+yay -S noctalia-shell vicinae ttf-jetbrains-mono misans 
 
 ```
 安装必要的软件包。
