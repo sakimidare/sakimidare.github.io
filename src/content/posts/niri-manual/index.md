@@ -423,7 +423,7 @@ spawn-at-startup "~/Desktop/tools/update_repositories.sh"
 spawn-at-startup "qs" "-c" "noctalia-shell"
 spawn-at-startup "/usr/bin/hyprlock"
 // 要运行shell命令（带有变量，管道等），请使用spawn-sh-at-at-startup：
-spawn-sh-at-startup "swaybg -i /home/sakimidare/Pictures/Manosaba_Wallpapers/Still_480_004.png -m fill"
+spawn-sh-at-startup "swaybg -i /path/to/your/wallpaper.png -m fill"
 
 hotkey-overlay {
     // 跳过“重要的热键”弹出窗口。
@@ -431,7 +431,7 @@ hotkey-overlay {
 }
 
 // 设置截图保存的路径，null将会禁止保存到磁盘
-screenshot-path "~/%Y-%m-%d %H-%M-%S.png"
+screenshot-path "~/Pictures/ScreenShot/%Y-%m-%d %H-%M-%S.png"
 
 // 忽略软件自带的装饰(例如标题栏)
 prefer-no-csd
