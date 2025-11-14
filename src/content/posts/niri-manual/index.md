@@ -53,7 +53,7 @@ Niri 和 我们熟悉的 Windows 桌面或 KDE Plasma 不同。他是一个水�
 
 :::warning
 
-Niri 并不像 KDE Plasma 和 Xfce 一样附带了一系列 GUI 程序可以开箱即用。因此，你可能需要安装附加程序如 `blueman` 来管理蓝牙设备、`dolphin` 来浏览程序、`konsole` 来运行终端、`gwenview` 来看图、 `vlc` 打开媒体、`fcitx5` 作为中文输入法、`noto-fonts`来显示中文字体等等。为了方便起见，我**强烈建议**先安装一个桌面环境如 Xfce 或 Plasma 来获得必要的软件来省事 ~~（实际上我是从 KDE 迁移过来的，软件包依赖这块我没搞清楚，哎呀都装上就没事啦）~~ 。具体安装步骤不再赘述，请参阅[Arch Linux 中文维基](https://wiki.archlinuxcn.org/)获得必要信息。
+Niri 并不像 KDE Plasma 和 Xfce 一样附带了一系列 GUI 程序可以开箱即用。因此，你可能需要安装附加程序如 `blueman` 来管理蓝牙设备、`dolphin` 来浏览文件、`alacritty` 来运行终端、`gwenview` 来看图、 `vlc` 打开媒体、`fcitx5` 作为中文输入法、`noto-fonts`来显示中文字体等等。具体安装步骤不再赘述，请参阅[Arch Linux 中文维基](https://wiki.archlinuxcn.org/)获得必要信息。
 
 另外，如上文所述，本文假定你是一个 Linux 用户。所以你的电脑上理应有 `git` `yay` `gcc` `clang` `rust`  `make` `python`等最基本的软件包。Niri 使用 Rust 编写，所以你得安装 `rust` 软件包来执行 `make` 操作。如有这些软件包缺失，请自行安装。
 :::
@@ -61,7 +61,7 @@ Niri 并不像 KDE Plasma 和 Xfce 一样附带了一系列 GUI 程序可以开�
 你可以用这两条命令：
 
 ```sh
-sudo pacman -S niri xdg-desktop-portal-gtk xdg-desktop-portal-gnome konsole swaybg swayidle hyprlock xwayland-satellite dolphin sddm brightnessctl wireplumber grim flameshot breeze wshowkeys-git fcitx5 fcitx5-qt fcitx5-chinese-addons blueman noto-fonts libnotify pipewire pipewire-pulse
+sudo pacman -S niri xdg-desktop-portal-gtk xdg-desktop-portal-gnome alacritty swaybg swayidle hyprlock xwayland-satellite dolphin sddm brightnessctl wireplumber grim flameshot breeze wshowkeys-git fcitx5 fcitx5-qt fcitx5-chinese-addons blueman noto-fonts libnotify pipewire pipewire-pulse
 yay -S noctalia-shell vicinae ttf-jetbrains-mono misans 
 
 ```
@@ -140,14 +140,14 @@ input {
 
     // niri默认接管电源按钮的功能是sleep,这里禁用以使用关机功能
     disable-power-key-handling
-    // 切换mod键：正常使用 Super，嵌套窗口内使用 Alt。
+    // 切换mod键：正常使用alt，嵌套窗口内使用Super。
     mod-key "Super"
     mod-key-nested "Alt"
 }
 
 // 可以在niri实例中运行`niri msg outputs`找到显示器名称。
 output "HDMI" {
-    // 注释以启用此显示器。
+    // 取消注释以禁用此显示器。
     off
 
     // 默认聚焦在这个显示器
@@ -179,12 +179,13 @@ output "eDP-2" {
 
 // 可以使用wev来查询特定的按键对应的XKB名称
 binds {
+    Alt+Tab { spawn "niri-switch"; }
     // Mod-Shift-/显示重要的热键列表(通常与 Mod-? 相同)。
     Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+D hotkey-overlay-title="Open the File Manager" { spawn "/usr/bin/dolphin"; } 
     // Mod+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "/usr/bin/swaylock" "-f" "-i" "$HOME/.dotfiles/sway/.config/sway/lock.png"; }
     Mod+L hotkey-overlay-title="Lock the Screen: hyprlock" { spawn "/usr/bin/hyprlock"; }
-    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn "/usr/bin/konsole"; }
+    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn "/usr/bin/alacritty"; }
    // Mod+A hotkey-overlay-title="Run an Application" { spawn "/usr/bin/fuzzel"; }
     Mod+A hotkey-overlay-title="Run an Application" { spawn "/usr/bin/vicinae" "toggle"; }
     Mod+X hotkey-overlay-title="Open a browser: zen" { spawn "/usr/bin/google-chrome-stable"; }
@@ -200,8 +201,8 @@ binds {
     XF86AudioMicMute     allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
 
     // 亮度控制。brightnessctl 有独立的包
-    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "set" "+10%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "set" "10%-"; }
 
     // 开关overview
     Mod+Tab repeat=false { toggle-overview; }
@@ -215,6 +216,8 @@ binds {
     Mod+Right { focus-column-right; }
     Mod+N     { focus-column-left; }
     Mod+i     { focus-column-right; }
+    Mod+Alt+Left { consume-or-expel-window-left; }
+    Mod+Alt+Right {consume-or-expel-window-right; }
     // Mod+N     { spawn-sh "niri msg action focus-column-left && niri msg action center-column"; }
     // Mod+i     { spawn-sh "niri msg action focus-column-right && niri msg action center-column"; }
     Mod+Shift+Left  { move-column-left; }
@@ -313,9 +316,9 @@ binds {
     Mod+C { center-column; }
     Mod+Ctrl+C { center-visible-columns; }
 
-    // 在layout中预设的宽度之间切换
+    // 在layout中预设的宽度和高度之间切换
     Mod+R { switch-preset-column-width; }
-
+    Mod+Shift+R { switch-preset-window-height; }
     // 改变宽度单位可以有pixels、百分比
     Mod+Minus { set-column-width "-10%"; }
     Mod+Equal { set-column-width "+10%"; }
@@ -349,7 +352,7 @@ binds {
 layout {
     // 在逻辑像素中设置Windows周围的缝隙。
     gaps 10
-
+    background-color "transparent"
     // 存在多个窗口时，未最大化的窗口不自动居中，方便分屏
     center-focused-column "never"
     // 只有一个窗口时自动居中显示
@@ -364,6 +367,11 @@ layout {
         // fixed 1920
     }
 
+    preset-window-heights {
+        proportion 0.5
+        proportion 0.8
+        proportion 1.0
+    }
     // 关闭聚焦框
     focus-ring {
         // off
@@ -378,7 +386,7 @@ layout {
 // 覆盖由niri启动的进程的环境变量
 environment {
     QT_QPA_PLATFORMTHEME "qt5ct"
-    // ALL_PROXY "http://127.0.0.1:7890"
+    ALL_PROXY "http://127.0.0.1:7890"
     LANG "zh_CN.UTF-8"
     LC_CTYPE "zh_CN.UTF-8"
     LC_NUMERIC "zh_CN.UTF-8"
@@ -393,15 +401,18 @@ environment {
     LC_MEASUREMENT "zh_CN.UTF-8"
     LC_IDENTIFICATION "zh_CN.UTF-8"
     LC_ALL null
+    // XDG_DATA_DIRS "$HOME/.local/share" "$XDG_DATA_DIRS"
+    // GTK_IM_MODULE "fcitx"
     QT_IM_MODULE "fcitx"
     // https://fcitx-im.org/wiki/Using_Fcitx_5_on_Wayland#Sway
     XMODIFIERS "@im=fcitx"
     QT_IM_MODULES "wayland;fcitx"
-    GTK_IM_MODULE null // wayland 不需要这个东西
+    GTK_IM_MODULE null
     SDL_IM_MODULE null
     GLFW_IM_MODULE null
 }
-spawn-at-startup "/usr/bin/hyprlock"
+spawn-at-startup "niri-switch-daemon"
+
 // 启动niri时自动启动的软件
 spawn-at-startup "/usr/bin/fcitx5"
 // spawn-at-startup "/usr/bin/v2rayn"
@@ -410,9 +421,9 @@ spawn-at-startup "/usr/bin/vicinae" "server"
 spawn-at-startup "~/.cargo/bin/soteria"
 spawn-at-startup "~/Desktop/tools/update_repositories.sh"
 spawn-at-startup "qs" "-c" "noctalia-shell"
-
+spawn-at-startup "/usr/bin/hyprlock"
 // 要运行shell命令（带有变量，管道等），请使用spawn-sh-at-at-startup：
-spawn-sh-at-startup "swaybg -i /path/to/your/wallpaper.png -m fill"
+spawn-sh-at-startup "swaybg -i /home/sakimidare/Pictures/Manosaba_Wallpapers/Still_480_004.png -m fill"
 
 hotkey-overlay {
     // 跳过“重要的热键”弹出窗口。
@@ -427,7 +438,8 @@ prefer-no-csd
 
 // 指定光标的主题和大小，打字时隐藏光标
 cursor {
-    xcursor-theme "breeze" // 得安装 Breeze 主题
+    // xcursor-theme "Dracula-cursors"
+    xcursor-theme "breeze"
     xcursor-size 24
     hide-when-typing
 }
@@ -440,16 +452,20 @@ window-rule {
     // default-column-width { proportion 0.7556; }
     geometry-corner-radius 20 
     clip-to-geometry true
-    focus-ring {
+    border {
         // off
         on
         width 4
-        active-color "#bd93f9"
+        active-gradient from="#bd93f9" to="#94b9fa" angle=135
         inactive-color "#505050"
         urgent-color "#9b0000"
         // active-gradient from="#80c8ff" to="#bbddff" angle=45
         // inactive-gradient from="#505050" to="#808080" angle=45 relative-to="workspace-view"
         // urgent-gradient from="#800" to="#a33" angle=45
+    }
+
+    focus-ring{
+        off
     }
     // opacity 0.75
 }
@@ -460,13 +476,13 @@ window-rule {
 }
 window-rule {
     open-on-output "eDP-2"
-    match app-id=r#"firefox"#
-    default-column-width { proportion 0.2444; }
-    border {
-        on
-        width 2
-        active-color "#61AFEF"
-    }
+    match app-id=r#"chrome"#
+    default-column-width { proportion 0.8; }
+    // border {
+    //    on
+    //    width 4
+    //    active-color "#61AFEF"
+    // }
     // open-focused false
 }
 window-rule {
@@ -484,15 +500,77 @@ layer-rule {
     place-within-backdrop true
     //     opacity 0.75
 }
+
+// Put swaybg inside the overview backdrop.
+layer-rule {
+    match namespace="^wallpaper$"
+    place-within-backdrop true
+}
+
 debug {
     honor-xdg-activation-with-invalid-serial
 }
-// 禁用鼠标左上角热角
+// 禁用鼠标左上角热脚
 gestures {
     hot-corners {
-        off
+        // off
     }
 }
+
+animations {
+    // Uncomment to turn off all animations.
+    // You can also put "off" into each individual animation to disable it.
+    // off
+
+    // Slow down all animations by this factor. Values below 1 speed them up instead.
+    // slowdown 3.0
+
+    // Individual animations.
+
+    workspace-switch {
+        spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
+    }
+
+    window-open {
+        duration-ms 150
+        curve "ease-out-expo"
+    }
+
+    window-close {
+        duration-ms 150
+        curve "ease-out-quad"
+    }
+
+    horizontal-view-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    window-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    window-resize {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    config-notification-open-close {
+        spring damping-ratio=0.6 stiffness=1000 epsilon=0.001
+    }
+
+    exit-confirmation-open-close {
+        spring damping-ratio=0.6 stiffness=500 epsilon=0.01
+    }
+
+    screenshot-ui-open {
+        duration-ms 200
+        curve "ease-out-quad"
+    }
+
+    overview-open-close {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+}
+
 
 ```
 
@@ -505,12 +583,15 @@ gestures {
 |Mod + Shift + /(?) | 显示热键菜单 |
 |Mod + A | 打开 Vicinae (App 启动器) |
 |Mod + D | 打开 Dolphin（文件管理器） |
-|Mod + X | 打开 `google-chrome-stable` （浏览器，需安装）|
+|Mod + X | 打开 `google-chrome-stable` |
 |Mod + Enter | 打开 Konsole （终端）|
-|Mod + F | 将当前窗口全屏 |
+|Mod + R | 在预设的列宽中切换 |
+|Mod + Shift + R | 在预设的列高中切换 |
+|Mod + F | 将当前列的宽度扩展到最大 |
 |Mod + L | 用 Hyprlock 锁屏 |
 |Mod + 左右箭头 | 切换窗口左右焦点 |
 |Mod + Shift + 左右箭头| 将当前列和左右列互换位置 |
+|Mod + Alt + 左右箭头| 将该窗口吸收进左右列中或从当前列释放出去 |
 |Mod + PgUp / PgDn| 上下切换工作区 |
 |Mod + Ctrl + PgUp / PgDn | 将当前列移动到上下工作区 |
 |Mod + Tab| 进入 Overview （缩小整个屏幕以显示工作区概览） |
@@ -570,15 +651,15 @@ general {
 # BACKGROUND
 background {
   monitor =
-  path = /path/to/your/wallpaper.png
-  blur_passes = 0
+  path = /path/to/your/lock/screen/wallpaper.png
+  blur_passes = 2
   color = $base
 }
 
 # LAYOUT
 label {
   monitor =
-  text = Layout: $LAYOUT
+  text = 键盘布局: $LAYOUT
   color = $text
   font_size = 25
   font_family = $font
@@ -627,9 +708,11 @@ label {
 image {
   monitor =
   path = $HOME/.face
-  size = 100
+  # size = 100
+  size = 200
   border_color = $accent
-  position = 0, 75
+  position = 0, 90
+  # position = 0, 75
   halign = center
   valign = center
 }
@@ -646,16 +729,18 @@ input-field {
   inner_color = $surface0
   font_color = $text
   fade_on_empty = false
-  placeholder_text = <span foreground="##$textAlpha"><i>󰌾 Logged in as </i><span foreground="##$accentAlpha">$USER</span></span>
+  # placeholder_text = <span foreground="##$textAlpha"><i>󰌾 Logged in as </i><span foreground="##$accentAlpha">$USER</span></span>
+  placeholder_text = <span foreground="##$textAlpha">󰌾 <span foreground="##$accentAlpha">$USER</span> 已登录 </span>
   hide_input = false
   check_color = $accent
   fail_color = $red
-  fail_text = <i>$FAIL <b>($ATTEMPTS)</b></i>
+  fail_text = <i> 已失败 <b>($ATTEMPTS)</b> 次 </i>
   capslock_color = $yellow
-  position = 0, -47
+  # position = 0, -47
+  position = 0, -80
   halign = center
   valign = center
-}
+
 
 ```
 
@@ -665,12 +750,15 @@ input-field {
 # BACKGROUND
 background {
   monitor =
-  path = /path/to/your/wallpaper.png
+  path = /path/to/your/lock/screen/wallpaper.png
   blur_passes = 0
   color = $base
 }
 ```
 填入锁屏壁纸的位置。
+
+并请复制一份你的头像到 `~/.face`。（注意：是创建一个`.face`文件，而不是在 `.face` 文件夹里面放上自己的头像图片！）
+
 
 编辑 `~/.config/hypr/mocha/mocha.conf`，填入以下配置：
 
@@ -765,6 +853,55 @@ $textAlpha = cdd6f4
 ```
 
 若觉得和壁纸不搭，可以直接替换成喜欢的 RGB 色值。
+
+## 配置 Alacritty
+
+```sh
+git clone https://github.com/catppuccin/alacritty.git ~/.config/alacritty/catppuccin
+touch ~/.config/alacritty/alacritty.toml
+```
+
+在 `~/.config/alacritty/alacritty.toml` 填入以下内容：
+
+
+```ini
+[env]
+TERM = "xterm-256color"
+
+[general]
+live_config_reload = true
+import = ["~/.config/alacritty/catppuccin/catppuccin-mocha.toml"]
+
+[window]
+decorations = "buttonless"
+dynamic_padding = false
+opacity = 1.0
+
+[window.padding]
+x = 25
+y = 20
+
+[font]
+size = 12.0
+
+[font.bold]
+family = "JetBrains Mono"
+style = "Heavy"
+
+[font.bold_italic]
+family = "JetBrains Mono"
+style = "Heavy Italic"
+
+[font.italic]
+family = "JetBrains Mono"
+style = "Medium Italic"
+
+[font.normal]
+family = "JetBrains Mono"
+style = "Medium"
+
+```
+
 
 ## 配置 SDDM 自动登录
 
