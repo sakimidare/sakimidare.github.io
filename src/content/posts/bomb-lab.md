@@ -167,6 +167,117 @@ void phase_defused();
 
 # 反汇编
 
+首先用 `readelf` 看一眼这个 ELF 文件的布局：
+
+```sh
+readelf -a bomb 
+ELF 头：
+  Magic：  7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
+  类别:                              ELF64
+  数据:                              2 补码，小端序 (little endian)
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI 版本:                          0
+  类型:                              EXEC (可执行文件)
+  系统架构:                          Advanced Micro Devices X86-64
+  版本:                              0x1
+  入口点地址：              0x400c90
+  程序头起点：              64 (bytes into file)
+  Start of section headers:          18616 (bytes into file)
+  标志：             0x0
+  Size of this header:               64 (bytes)
+  Size of program headers:           56 (bytes)
+  Number of program headers:         9
+  Size of section headers:           64 (bytes)
+  Number of section headers:         36
+  Section header string table index: 33
+
+节头：
+  [号] 名称              类型             地址              偏移量
+       大小              全体大小          旗标   链接   信息   对齐
+  [ 0]                   NULL             0000000000000000  00000000
+       0000000000000000  0000000000000000           0     0     0
+  [ 1] .interp           PROGBITS         0000000000400238  00000238
+       000000000000001c  0000000000000000   A       0     0     1
+  [ 2] .note.ABI-tag     NOTE             0000000000400254  00000254
+       0000000000000020  0000000000000000   A       0     0     4
+  [ 3] .note.gnu.bu[...] NOTE             0000000000400274  00000274
+       0000000000000024  0000000000000000   A       0     0     4
+  [ 4] .gnu.hash         GNU_HASH         0000000000400298  00000298
+       0000000000000030  0000000000000000   A       5     0     8
+  [ 5] .dynsym           DYNSYM           00000000004002c8  000002c8
+       0000000000000300  0000000000000018   A       6     1     8
+  [ 6] .dynstr           STRTAB           00000000004005c8  000005c8
+       000000000000016d  0000000000000000   A       0     0     1
+  [ 7] .gnu.version      VERSYM           0000000000400736  00000736
+       0000000000000040  0000000000000002   A       5     0     2
+  [ 8] .gnu.version_r    VERNEED          0000000000400778  00000778
+       0000000000000060  0000000000000000   A       6     1     8
+  [ 9] .rela.dyn         RELA             00000000004007d8  000007d8
+       0000000000000060  0000000000000018   A       5     0     8
+  [10] .rela.plt         RELA             0000000000400838  00000838
+       0000000000000288  0000000000000018   A       5    12     8
+  [11] .init             PROGBITS         0000000000400ac0  00000ac0
+       000000000000000e  0000000000000000  AX       0     0     4
+  [12] .plt              PROGBITS         0000000000400ad0  00000ad0
+       00000000000001c0  0000000000000010  AX       0     0     16
+  [13] .text             PROGBITS         0000000000400c90  00000c90
+       0000000000001614  0000000000000000  AX       0     0     16
+  [14] .fini             PROGBITS         00000000004022a4  000022a4
+       0000000000000009  0000000000000000  AX       0     0     4
+  [15] .rodata           PROGBITS         00000000004022b0  000022b0
+       00000000000004e5  0000000000000000   A       0     0     16
+  [16] .eh_frame_hdr     PROGBITS         0000000000402798  00002798
+       0000000000000104  0000000000000000   A       0     0     4
+  [17] .eh_frame         PROGBITS         00000000004028a0  000028a0
+       0000000000000454  0000000000000000   A       0     0     8
+  [18] .init_array       INIT_ARRAY       0000000000602df8  00002df8
+       0000000000000008  0000000000000000  WA       0     0     8
+  [19] .fini_array       FINI_ARRAY       0000000000602e00  00002e00
+       0000000000000008  0000000000000000  WA       0     0     8
+  [20] .jcr              PROGBITS         0000000000602e08  00002e08
+       0000000000000008  0000000000000000  WA       0     0     8
+  [21] .dynamic          DYNAMIC          0000000000602e10  00002e10
+       00000000000001d0  0000000000000010  WA       6     0     8
+  [22] .got              PROGBITS         0000000000602fe0  00002fe0
+       0000000000000008  0000000000000008  WA       0     0     8
+  [23] .got.plt          PROGBITS         0000000000602fe8  00002fe8
+       00000000000000f0  0000000000000008  WA       0     0     8
+  [24] .data             PROGBITS         00000000006030e0  000030e0
+       0000000000000660  0000000000000000  WA       0     0     32
+  [25] .bss              NOBITS           0000000000603740  00003740
+       00000000000006d0  0000000000000000  WA       0     0     32
+  [26] .comment          PROGBITS         0000000000000000  00003740
+       0000000000000053  0000000000000001  MS       0     0     1
+  [27] .debug_aranges    PROGBITS         0000000000000000  00003793
+       0000000000000030  0000000000000000           0     0     1
+  [28] .debug_info       PROGBITS         0000000000000000  000037c3
+       00000000000007a3  0000000000000000           0     0     1
+  [29] .debug_abbrev     PROGBITS         0000000000000000  00003f66
+       000000000000021f  0000000000000000           0     0     1
+  [30] .debug_line       PROGBITS         0000000000000000  00004185
+       0000000000000161  0000000000000000           0     0     1
+  [31] .debug_str        PROGBITS         0000000000000000  000042e6
+       00000000000002f3  0000000000000001  MS       0     0     1
+  [32] .debug_loc        PROGBITS         0000000000000000  000045d9
+       0000000000000188  0000000000000000           0     0     1
+  [33] .shstrtab         STRTAB           0000000000000000  00004761
+       0000000000000153  0000000000000000           0     0     1
+  [34] .symtab           SYMTAB           0000000000000000  000051b8
+       0000000000000eb8  0000000000000018          35    57     8
+  [35] .strtab           STRTAB           0000000000000000  00006070
+       00000000000006b6  0000000000000000           0     0     1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), O (extra OS processing required), G (group), T (TLS),
+  C (compressed), x (unknown), o (OS specific), E (exclude),
+  D (mbind), l (large), p (processor specific)
+
+There are no section groups in this file.
+```
+
+对我们有用的部分是 `.text` 和 `.rodata` 段。前者保存机器码，后者保存用到的常量（包括字符串）。
+
 ## `initialize_bomb()`
 
 ```sh
@@ -982,3 +1093,195 @@ Disassembly of section .text:
   40105d:       48 83 c4 18             add    $0x18,%rsp
   401061:       c3                      ret
 ```
+
+经典 `sscanf`。这次的格式化字符串是 `0x4025cf`。还是 `phase_3` 的格式，意味着输入俩整数进去，保存到 `0x8(%rsp)`和 `0xc(%rsp)`。
+
+此时我们的研究重心到了：
+
+```sh
+  40102e:       83 7c 24 08 0e          cmpl   $0xe,0x8(%rsp)
+  401033:       76 05                   jbe    40103a <phase_4+0x2e>
+  401035:       e8 00 04 00 00          call   40143a <explode_bomb>
+  40103a:       ba 0e 00 00 00          mov    $0xe,%edx
+  40103f:       be 00 00 00 00          mov    $0x0,%esi
+  401044:       8b 7c 24 08             mov    0x8(%rsp),%edi
+  401048:       e8 81 ff ff ff          call   400fce <func4>
+  40104d:       85 c0                   test   %eax,%eax
+  40104f:       75 07                   jne    401058 <phase_4+0x4c>
+  401051:       83 7c 24 0c 00          cmpl   $0x0,0xc(%rsp)
+  401056:       74 05                   je     40105d <phase_4+0x51>
+  401058:       e8 dd 03 00 00          call   40143a <explode_bomb>
+  40105d:       48 83 c4 18             add    $0x18,%rsp
+```
+
+`jbe`需满足 `0xe` < `0x8(%rsp)`。即第一个数需要大于 `14`。
+
+又已知函数传参的顺序是`%edi`, `%esi`, `%edx`。在上面的汇编中，分别被赋值成 `0x8(%esp)`, `$0`, `$14`。
+查看 `func4` 的汇编：
+
+```sh
+objdump -d bomb --disassemble=func4                
+
+bomb：     文件格式 elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+0000000000400fce <func4>:
+  400fce:       48 83 ec 08             sub    $0x8,%rsp
+  400fd2:       89 d0                   mov    %edx,%eax
+  400fd4:       29 f0                   sub    %esi,%eax
+  400fd6:       89 c1                   mov    %eax,%ecx
+  400fd8:       c1 e9 1f                shr    $0x1f,%ecx
+  400fdb:       01 c8                   add    %ecx,%eax
+  400fdd:       d1 f8                   sar    $1,%eax
+  400fdf:       8d 0c 30                lea    (%rax,%rsi,1),%ecx
+  400fe2:       39 f9                   cmp    %edi,%ecx
+  400fe4:       7e 0c                   jle    400ff2 <func4+0x24>
+  400fe6:       8d 51 ff                lea    -0x1(%rcx),%edx
+  400fe9:       e8 e0 ff ff ff          call   400fce <func4>
+  400fee:       01 c0                   add    %eax,%eax
+  400ff0:       eb 15                   jmp    401007 <func4+0x39>
+  400ff2:       b8 00 00 00 00          mov    $0x0,%eax
+  400ff7:       39 f9                   cmp    %edi,%ecx
+  400ff9:       7d 0c                   jge    401007 <func4+0x39>
+  400ffb:       8d 71 01                lea    0x1(%rcx),%esi
+  400ffe:       e8 cb ff ff ff          call   400fce <func4>
+  401003:       8d 44 00 01             lea    0x1(%rax,%rax,1),%eax
+  401007:       48 83 c4 08             add    $0x8,%rsp
+  40100b:       c3                      ret
+```
+
+哦我的上帝这是什么诡异的递归……
+
+（拿出草稿纸）
+```sh
+  400fd2:       89 d0                   mov    %edx,%eax
+  400fd4:       29 f0                   sub    %esi,%eax
+  400fd6:       89 c1                   mov    %eax,%ecx
+  400fd8:       c1 e9 1f                shr    $0x1f,%ecx
+  400fdb:       01 c8                   add    %ecx,%eax
+  400fdd:       d1 f8                   sar    $1,%eax
+  400fdf:       8d 0c 30                lea    (%rax,%rsi,1),%ecx
+```
+询问 Gemini 之后发现这部分实现了一个取平均数的操作。~~（原谅我）~~
+
+`shr $0x1f,%ecx` 这条指令极其炫技。想想`0x1f`是什么？31 对吧。对一个有符号双字右移 31 位得到了什么？符号位！所以这条指令取了`%ecx` (也就是`%eax`的备份) 的符号位。
+
+`add %ecx,%eax` 更神奇。我们不妨分情况讨论：
+
+1. `%eax` 是正数：符号位为 0, 直接右移。
+2. `%eax` 是负奇数：加一再右移（结果无区别）；
+3. `%eax` 是负偶数：加一再右移（结果 + 1）。
+
+发现了吗？这一部分实现了 C 标准的向 0 取整，确保右移和数学除法没有区别。
+
+执行完之后 `%rax` 里面是差值的一半，而 `%ecx` 里面正好就是平均数（`low + (low + high) >> 1`）。
+
+之后的条件跳转就不细说了，整体逻辑可以简化为下面的函数：
+
+```c
+int func4(int target, int low, int high) {
+    int mid = low + (high - low) / 2;
+    if (mid > target) {
+        return 2 * func4(target, low, mid - 1);
+    } else if (mid < target) {
+        return 2 * func4(target, mid + 1, high) + 1;
+    } else {
+        return 0;
+    }
+}
+```
+
+剩下下面几行：
+
+```sh
+  40104d:       85 c0                   test   %eax,%eax
+  40104f:       75 07                   jne    401058 <phase_4+0x4c>
+  401051:       83 7c 24 0c 00          cmpl   $0x0,0xc(%rsp)
+  401056:       74 05                   je     40105d <phase_4+0x51>
+  401058:       e8 dd 03 00 00          call   40143a <explode_bomb>
+  40105d:       48 83 c4 18             add    $0x18,%rsp
+  401061:       c3                      ret
+```
+
+显然，如果返回值不是 0，就会跳转到爆炸函数。`0xc(%rsp)` 如果不等于 0，也会触发爆炸。
+
+那么显然，我们的`0x8(%esp)`应该被赋值成 7, `0xc(%esp)` 应该被赋值成 0。
+```sh
+./bomb
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Border relations with Canada have never been better.
+Phase 1 defused. How about the next one?
+1 2 4 8 16 32
+That's number 2.  Keep going!
+0 207
+Halfway there!
+7 0
+So you got that one.  Try this one.
+```
+
+
+## `phase_5()`
+
+```sh
+$ objdump -d bomb --disassemble=phase_5                       
+
+bomb：     文件格式 elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+0000000000401062 <phase_5>:
+  401062:       53                      push   %rbx
+  401063:       48 83 ec 20             sub    $0x20,%rsp
+  401067:       48 89 fb                mov    %rdi,%rbx
+  40106a:       64 48 8b 04 25 28 00    mov    %fs:0x28,%rax
+  401071:       00 00 
+  401073:       48 89 44 24 18          mov    %rax,0x18(%rsp)
+  401078:       31 c0                   xor    %eax,%eax
+  40107a:       e8 9c 02 00 00          call   40131b <string_length>
+  40107f:       83 f8 06                cmp    $0x6,%eax
+  401082:       74 4e                   je     4010d2 <phase_5+0x70>
+  401084:       e8 b1 03 00 00          call   40143a <explode_bomb>
+  401089:       eb 47                   jmp    4010d2 <phase_5+0x70>
+  40108b:       0f b6 0c 03             movzbl (%rbx,%rax,1),%ecx
+  40108f:       88 0c 24                mov    %cl,(%rsp)
+  401092:       48 8b 14 24             mov    (%rsp),%rdx
+  401096:       83 e2 0f                and    $0xf,%edx
+  401099:       0f b6 92 b0 24 40 00    movzbl 0x4024b0(%rdx),%edx
+  4010a0:       88 54 04 10             mov    %dl,0x10(%rsp,%rax,1)
+  4010a4:       48 83 c0 01             add    $0x1,%rax
+  4010a8:       48 83 f8 06             cmp    $0x6,%rax
+  4010ac:       75 dd                   jne    40108b <phase_5+0x29>
+  4010ae:       c6 44 24 16 00          movb   $0x0,0x16(%rsp)
+  4010b3:       be 5e 24 40 00          mov    $0x40245e,%esi
+  4010b8:       48 8d 7c 24 10          lea    0x10(%rsp),%rdi
+  4010bd:       e8 76 02 00 00          call   401338 <strings_not_equal>
+  4010c2:       85 c0                   test   %eax,%eax
+  4010c4:       74 13                   je     4010d9 <phase_5+0x77>
+  4010c6:       e8 6f 03 00 00          call   40143a <explode_bomb>
+  4010cb:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
+  4010d0:       eb 07                   jmp    4010d9 <phase_5+0x77>
+  4010d2:       b8 00 00 00 00          mov    $0x0,%eax
+  4010d7:       eb b2                   jmp    40108b <phase_5+0x29>
+  4010d9:       48 8b 44 24 18          mov    0x18(%rsp),%rax
+  4010de:       64 48 33 04 25 28 00    xor    %fs:0x28,%rax
+  4010e5:       00 00 
+  4010e7:       74 05                   je     4010ee <phase_5+0x8c>
+  4010e9:       e8 42 fa ff ff          call   400b30 <__stack_chk_fail@plt>
+  4010ee:       48 83 c4 20             add    $0x20,%rsp
+  4010f2:       5b                      pop    %rbx
+  4010f3:       c3                      ret
+```
+
+先写到这吧，懒了（）
