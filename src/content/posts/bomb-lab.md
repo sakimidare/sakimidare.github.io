@@ -490,6 +490,8 @@ Disassembly of section .fini:
 
 这个函数开始出现了比较多的跳转指令，猜测由 `if` 和 `while` 编译而来。
 
+### `<read_six_numbers>`
+
 先去看看 `40145c` 的 `read_six_numbers` 函数吧，看看读入的六个数字存到哪里去。
 
 ```sh
@@ -529,7 +531,7 @@ int sscanf(const char *str, const char *format, ...);
 ```
 发现不同于直接从 stdin 读取的 `scanf`, 他接收 n+2 = 8 个参数。
 
-已知 x86-64 汇编中函数传参的顺序是 `%rdi` `%rsi` `%rdx` `%rcx` `%r8` `%r9`，而我们读入六个数字需要传给 `sscanf()` 7个参数。还余下两个怎么办？经过查找资料发现会从栈里从顶到底挨个读取数据。
+已知 x86-64 汇编中函数传参的顺序是 `%rdi` `%rsi` `%rdx` `%rcx` `%r8` `%r9`，而我们读入六个数字需要传给 `sscanf()` 8个参数。还余下两个怎么办？经过查找资料发现会从栈里从顶到底挨个读取数据。
 
 第二个参数是`%rsi`。盲猜一手 `0x4025c3` 那边存的应该是类似 `%d %d %d %d %d %d` 的东西。
 
@@ -542,6 +544,10 @@ int sscanf(const char *str, const char *format, ...);
 
 既然是我输入的字符串，我有理由猜测输入的字符串原封不动地躺在 `%edi` 里边 ~~大概吧（）~~
 
+:::note
+这个地方是我蒙的不小心蒙对了（）
+:::
+
 注意到有几行汇编非常有意思：
 ```sh
   400efe:       48 83 ec 28             sub    $0x28,%rsp
@@ -549,7 +555,6 @@ int sscanf(const char *str, const char *format, ...);
   400f05:       e8 52 05 00 00          call   40145c <read_six_numbers>
   ...
   40145c:       48 83 ec 18             sub    $0x18,%rsp
-  401460:       48 89 f2                mov    %rsi,%rdx
 ```
 
 - `400efe` 行：开辟 `0x28` 字节大小空间；
@@ -564,10 +569,9 @@ int sscanf(const char *str, const char *format, ...);
   401478:       4c 8d 4e 0c             lea    0xc(%rsi),%r9
   40147c:       4c 8d 46 08             lea    0x8(%rsi),%r8
   401480:       be c3 25 40 00          mov    $0x4025c3,%esi
-  40148a:       e8 61 f7 ff ff          call   400bf0 <__isoc99_sscanf@plt>
 ```
 
-这几行涉及内存地址的计算和 `sscanf` 的写入。可以看到参数的偏移量都是以 `%rsi`（也就是刚刚备份过的 `%rsp`）为基准的。
+这几行涉及内存地址的计算。可以看到，所有参数对应的内存偏移量都是以 `%rsi`（也就是刚刚备份过的 `%rsp`）为基准的。`sscanf` 写入的所有数据都保存在 `phase_2` 的栈帧中。
 
 ```sh
   401467:       48 8d 46 14             lea    0x14(%rsi),%rax
@@ -576,29 +580,405 @@ int sscanf(const char *str, const char *format, ...);
   401474:       48 89 04 24             mov    %rax,(%rsp)
 ```
 
-这几行为最后的两个参数算好了偏移量，只是为了给放不下的那两个参数提供一个临时的住所。`sscanf` 写入的数据仍旧以`%rsi`为基准来计算。
-
-于是六个数字全部读取完毕，存储在以 `phase_2` 栈帧为基准的栈里。至于
-
-```sh
-  40145c:       48 83 ec 18             sub    $0x18,%rsp
-```
-
-谁管它呢，他就是个临时变量。
+这几行不同于上文的`lea 0x...(%rsi) %寄存器` 是因为给参数使用的寄存器用完了，不得不从栈里读数据。这里的栈指针为分配好 `0x18` 字节之后的指针，确保不会覆盖之前读取好的数据。
 
 于是我们就有了下面一张表：
 
+<div id="target-point"></div>
 （对不起我用 AI 整理了一下实在不好意思...）
 
-| 次序| 参数意义 | 存放位置 | 汇编证据 | 
-| -- | -- | -- | -- |
-| 1 | 输入字符串 | `%rdi` | (外部传入，直接透传) |
-| 2 | 格式化字符串 | `%rsi` | `mov $0x4025c3, %esi` |
-| 3 | 数字 1 的地址 |`%rdx` |`mov %rsi, %rdx` |
-| 4 | 数字 2 的地址 |`%rcx` |`lea 0x4(%rsi), %rcx` |
-| 5 | 数字 3 的地址 |`%r8` |`lea 0x8(%rsi), %r8` |
-| 6 | 数字 4 的地址 |`%r9`|`lea 0xc(%rsi), %r9` |
-| 7 | 数字 5 的地址 | `(%rsp)`|`mov %rax, (%rsp)` |
-| 8 | 数字 6 的地址 |`0x8(%rsp)`|`mov %rax, 0x8(%rsp)` |
+| 次序| 参数意义 | 存放位置 | 具体数据 | 汇编证据 | 
+| -- | -- | -- | -- |  -- |
+| 1 | 输入字符串 | `%rdi` | `(%rdi)`| (外部传入，直接透传) |
+| 2 | 格式化字符串 | `%rsi` | `0x4025c3` | `mov $0x4025c3, %esi` |
+| 3 | 数字 1 的地址 |`%rdx` | `(%rsi)` | `mov %rsi, %rdx` |
+| 4 | 数字 2 的地址 |`%rcx` | `0x4(%rsi)` | `lea 0x4(%rsi), %rcx` |
+| 5 | 数字 3 的地址 |`%r8` |`0x8(%rsi)`|`lea 0x8(%rsi), %r8` |
+| 6 | 数字 4 的地址 |`%r9`|`0xc(%rsi)`|`lea 0xc(%rsi), %r9` |
+| 7 | 数字 5 的地址 | `(%rsp)`|`0x10(%rsi)`|`lea 0x10(%rsi),%rax` `mov %rax, (%rsp)` |
+| 8 | 数字 6 的地址 |`0x8(%rsp)`|`0x14(%rsi)`|`lea 0x14(%rsi),%rax` `mov %rax, 0x8(%rsp)` |
 
 注意到了 `401492` 的比较跳转指令正好跳过了`401494` 的爆炸函数，所以我们要想办法满足 `jg` 的条件。
+
+```sh
+  40148a:       e8 61 f7 ff ff          call   400bf0 <__isoc99_sscanf@plt>
+  40148f:       83 f8 05                cmp    $0x5,%eax
+  401492:       7f 05                   jg     401499 <read_six_numbers+0x3d>
+```
+
+我们来查阅 `sscanf` 的返回值：
+
+```
+RETURN VALUE
+  On success, these functions return the number of input items
+  successfully matched and assigned; this can be fewer than provided
+  for, or even zero, in the event of an early matching failure.
+
+  The value EOF is returned if the end of input is reached before
+  either the first successful conversion or a matching failure
+  occurs.
+```
+
+
+发现返回值 （也就是 `%eax` 里的值）是解析出的输入个数。之后 `40148f` 行将返回值与 5 进行比较，如果返回值大于 5，就跳过炸弹。
+
+这个操作等效于以下 C 代码：
+
+```c
+if(sscanf("%d %d %d %d %d %d", &a1, &a2, &a3, &a4, &a5, &a6) <= 5) {
+    explode_bomb();
+}
+```
+
+于是我们顺利分析了 `read_six_numbers` 的行为。
+
+
+### 循环与跳转
+
+调用完 `read_six_numbers` 函数后，紧接着 `phase_2` 做了以下行为：
+
+```sh
+  400f0a:       83 3c 24 01             cmpl   $0x1,(%rsp)
+  400f0e:       74 20                   je     400f30 <phase_2+0x34>
+  400f10:       e8 25 05 00 00          call   40143a <explode_bomb>
+  400f15:       eb 19                   jmp    400f30 <phase_2+0x34>
+  400f17:       8b 43 fc                mov    -0x4(%rbx),%eax
+  400f1a:       01 c0                   add    %eax,%eax
+  400f1c:       39 03                   cmp    %eax,(%rbx)
+  400f1e:       74 05                   je     400f25 <phase_2+0x29>
+  400f20:       e8 15 05 00 00          call   40143a <explode_bomb>
+  400f25:       48 83 c3 04             add    $0x4,%rbx
+  400f29:       48 39 eb                cmp    %rbp,%rbx
+  400f2c:       75 e9                   jne    400f17 <phase_2+0x1b>
+  400f2e:       eb 0c                   jmp    400f3c <phase_2+0x40>
+  400f30:       48 8d 5c 24 04          lea    0x4(%rsp),%rbx
+  400f35:       48 8d 6c 24 18          lea    0x18(%rsp),%rbp
+  400f3a:       eb db                   jmp    400f17 <phase_2+0x1b>
+  400f3c:       48 83 c4 28             add    $0x28,%rsp
+  400f40:       5b                      pop    %rbx
+  400f41:       5d                      pop    %rbp
+  400f42:       c3                      ret
+```
+
+```sh
+  400f0a:       83 3c 24 01             cmpl   $0x1,(%rsp)
+  400f0e:       74 20                   je     400f30 <phase_2+0x34>
+  400f10:       e8 25 05 00 00          call   40143a <explode_bomb>
+  400f15:       eb 19                   jmp    400f30 <phase_2+0x34>
+```
+
+如果 `(%rsp)` 不是 `1`，直接引爆炸弹。之后跳转到 `400f30` 段落。
+
+```sh
+  400f30:       48 8d 5c 24 04          lea    0x4(%rsp),%rbx
+  400f35:       48 8d 6c 24 18          lea    0x18(%rsp),%rbp
+  400f3a:       eb db                   jmp    400f17 <phase_2+0x1b>
+```
+
+这时候遇到了 `0x...(%rsp)`！时刻记住上面推导出来的[那张表](#target-point)，注意所有的`%rsi`均需换成`%rsp`，因为栈帧已还原。
+
+上述汇编做了个什么事呢？首先 `%rbx` 被赋予了 `%rsp + 0x4`。也就是**第二个数字的地址**。然后，`%rbp` 被赋予了 `%rsp + 0x18`，查表发现，刚好是最后一个数字**之后的地址**。随后跳转到 `400f17` 开始执行指令。
+
+```sh
+  400f17:       8b 43 fc                mov    -0x4(%rbx),%eax
+  400f1a:       01 c0                   add    %eax,%eax
+  400f1c:       39 03                   cmp    %eax,(%rbx)
+  400f1e:       74 05                   je     400f25 <phase_2+0x29>
+  400f20:       e8 15 05 00 00          call   40143a <explode_bomb>
+  400f25:       48 83 c3 04             add    $0x4,%rbx
+  400f29:       48 39 eb                cmp    %rbp,%rbx
+  400f2c:       75 e9                   jne    400f17 <phase_2+0x1b>
+```
+
+ - `400f17`: `%eax` 赋值为 `%rbx`的 **前一个数字**；
+ - `f00f1a`: 将`%eax` 翻倍；
+ - `400f1c`: 比较翻倍后的前一个数字与当前数字；
+ - `400f1e`: 如果相等，跳过炸弹，否则引爆炸弹；
+ - `400f25`: `%rbx` 增加 `0x4`，指向**后一个数字**；
+ - `400f29`: 检查 `%rbx` 是否与 `%rbp` 相等（指针是否指向了末尾）；
+ - `400f2c`: 如果没有指向末尾，重复执行上述操作。
+
+这不就是经典的`for`循环吗！
+
+```c
+ for(long *p = &a2; p < &a6 + 1; p++) {
+    if(*(p - 1) * 2 != *p) explode_bomb();
+ }
+```
+
+显然可以看出，`phase_2` 是一个检查输入 **是否为等比数列** 的函数，初值为 `1`，公比是 `2`，项数为`6`！
+
+```
+$ ./bomb
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Border relations with Canada have never been better.
+Phase 1 defused. How about the next one?
+1 2 4 8 16 32
+That's number 2.  Keep going!
+```
+
+## `phase_3()`
+
+```sh
+objdump -d bomb --disassemble=phase_3
+
+bomb：     文件格式 elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+0000000000400f43 <phase_3>:
+  400f43:       48 83 ec 18             sub    $0x18,%rsp
+  400f47:       48 8d 4c 24 0c          lea    0xc(%rsp),%rcx
+  400f4c:       48 8d 54 24 08          lea    0x8(%rsp),%rdx
+  400f51:       be cf 25 40 00          mov    $0x4025cf,%esi
+  400f56:       b8 00 00 00 00          mov    $0x0,%eax
+  400f5b:       e8 90 fc ff ff          call   400bf0 <__isoc99_sscanf@plt>
+  400f60:       83 f8 01                cmp    $0x1,%eax
+  400f63:       7f 05                   jg     400f6a <phase_3+0x27>
+  400f65:       e8 d0 04 00 00          call   40143a <explode_bomb>
+  400f6a:       83 7c 24 08 07          cmpl   $0x7,0x8(%rsp)
+  400f6f:       77 3c                   ja     400fad <phase_3+0x6a>
+  400f71:       8b 44 24 08             mov    0x8(%rsp),%eax
+  400f75:       ff 24 c5 70 24 40 00    jmp    *0x402470(,%rax,8)
+  400f7c:       b8 cf 00 00 00          mov    $0xcf,%eax
+  400f81:       eb 3b                   jmp    400fbe <phase_3+0x7b>
+  400f83:       b8 c3 02 00 00          mov    $0x2c3,%eax
+  400f88:       eb 34                   jmp    400fbe <phase_3+0x7b>
+  400f8a:       b8 00 01 00 00          mov    $0x100,%eax
+  400f8f:       eb 2d                   jmp    400fbe <phase_3+0x7b>
+  400f91:       b8 85 01 00 00          mov    $0x185,%eax
+  400f96:       eb 26                   jmp    400fbe <phase_3+0x7b>
+  400f98:       b8 ce 00 00 00          mov    $0xce,%eax
+  400f9d:       eb 1f                   jmp    400fbe <phase_3+0x7b>
+  400f9f:       b8 aa 02 00 00          mov    $0x2aa,%eax
+  400fa4:       eb 18                   jmp    400fbe <phase_3+0x7b>
+  400fa6:       b8 47 01 00 00          mov    $0x147,%eax
+  400fab:       eb 11                   jmp    400fbe <phase_3+0x7b>
+  400fad:       e8 88 04 00 00          call   40143a <explode_bomb>
+  400fb2:       b8 00 00 00 00          mov    $0x0,%eax
+  400fb7:       eb 05                   jmp    400fbe <phase_3+0x7b>
+  400fb9:       b8 37 01 00 00          mov    $0x137,%eax
+  400fbe:       3b 44 24 0c             cmp    0xc(%rsp),%eax
+  400fc2:       74 05                   je     400fc9 <phase_3+0x86>
+  400fc4:       e8 71 04 00 00          call   40143a <explode_bomb>
+  400fc9:       48 83 c4 18             add    $0x18,%rsp
+  400fcd:       c3                      ret
+```
+
+又是经典`sscanf`。看看格式化字符串：
+
+```sh
+ 4025c0 702e0025 64202564 20256420 25642025  p..%d %d %d %d %
+ 4025d0 64202564 00457272 6f723a20 5072656d  d %d.Error: Prem
+```
+
+竟然复用`phase_2`的字符串！但是起始位置不同。这次的格式化字符串是
+```
+%d %d
+```
+
+意味着我需要输入俩数字，存到 `(%rdx)` 和 `(%rcx)` （也就是 `0x8(%rsp)`, `0xc(%rsp)`）。
+
+根据 `phase_2` 的经验，我们直接来看这段：
+```sh
+  400f6a:       83 7c 24 08 07          cmpl   $0x7,0x8(%rsp)
+  400f6f:       77 3c                   ja     400fad <phase_3+0x6a>
+  400f71:       8b 44 24 08             mov    0x8(%rsp),%eax
+  400f75:       ff 24 c5 70 24 40 00    jmp    *0x402470(,%rax,8)
+  400f7c:       b8 cf 00 00 00          mov    $0xcf,%eax
+  400f81:       eb 3b                   jmp    400fbe <phase_3+0x7b>
+  400f83:       b8 c3 02 00 00          mov    $0x2c3,%eax
+  400f88:       eb 34                   jmp    400fbe <phase_3+0x7b>
+  400f8a:       b8 00 01 00 00          mov    $0x100,%eax
+  400f8f:       eb 2d                   jmp    400fbe <phase_3+0x7b>
+  400f91:       b8 85 01 00 00          mov    $0x185,%eax
+  400f96:       eb 26                   jmp    400fbe <phase_3+0x7b>
+  400f98:       b8 ce 00 00 00          mov    $0xce,%eax
+  400f9d:       eb 1f                   jmp    400fbe <phase_3+0x7b>
+  400f9f:       b8 aa 02 00 00          mov    $0x2aa,%eax
+  400fa4:       eb 18                   jmp    400fbe <phase_3+0x7b>
+  400fa6:       b8 47 01 00 00          mov    $0x147,%eax
+  400fab:       eb 11                   jmp    400fbe <phase_3+0x7b>
+  400fad:       e8 88 04 00 00          call   40143a <explode_bomb>
+  400fb2:       b8 00 00 00 00          mov    $0x0,%eax
+  400fb7:       eb 05                   jmp    400fbe <phase_3+0x7b>
+  400fb9:       b8 37 01 00 00          mov    $0x137,%eax
+  400fbe:       3b 44 24 0c             cmp    0xc(%rsp),%eax
+  400fc2:       74 05                   je     400fc9 <phase_3+0x86>
+  400fc4:       e8 71 04 00 00          call   40143a <explode_bomb>
+  400fc9:       48 83 c4 18             add    $0x18,%rsp
+  400fcd:       c3                      ret
+```
+`400f6f` 会直接把炸弹搞炸，所以 `0x8(%rsp)` 不应该大于 `0x7`。
+```sh
+  400f71:       8b 44 24 08             mov    0x8(%rsp),%eax
+  400f75:       ff 24 c5 70 24 40 00    jmp    *0x402470(,%rax,8)
+```
+
+这是干啥的？
+
+看看 `0x402470` 附近有啥吧。
+
+怎么反编译出来没这个地址？
+
+```sh
+00000000004022a0 <__libc_csu_fini>:
+  4022a0:       f3 c3                   repz ret
+  4022a2:       90                      nop
+  4022a3:       90                      nop
+
+Disassembly of section .fini:
+
+00000000004022a4 <_fini>:
+  4022a4:       48 83 ec 08             sub    $0x8,%rsp
+  4022a8:       48 83 c4 08             add    $0x8,%rsp
+  4022ac:       c3                      ret
+```
+
+？？？？
+
+我没招了。
+
+（激情拷打 Gemini）
+
+> 你看到的 402470 是 跳转表（Jump Table） 的基地址。
+> 
+> 这正是 C 语言中 switch-case 语句编译后的典型模样。因为 switch 的分支太多，编译器为了效率，不会写一堆 if-else，而是直接在内存里建了一张“地址表”，根据你输入的数字直接查表跳转。
+
+```sh
+$ gdb bomb 
+GNU gdb (GDB) 17.1
+Copyright (C) 2025 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-pc-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from bomb...
+(gdb) x/8gx 0x402470
+0x402470:       0x0000000000400f7c      0x0000000000400fb9
+0x402480:       0x0000000000400f83      0x0000000000400f8a
+0x402490:       0x0000000000400f91      0x0000000000400f98
+0x4024a0:       0x0000000000400f9f      0x0000000000400fa6
+```
+
+:::note
+gdb 显示的地址为大端序，实际上 .rodata 以小端序存放地址。
+
+```sh
+$ objdump -s -j .rodata bomb --start-address=0x402470
+
+bomb：     文件格式 elf64-x86-64
+
+Contents of section .rodata:
+ 402470 7c0f4000 00000000 b90f4000 00000000  |.@.......@.....
+ 402480 830f4000 00000000 8a0f4000 00000000  ..@.......@.....
+ 402490 910f4000 00000000 980f4000 00000000  ..@.......@.....
+ 4024a0 9f0f4000 00000000 a60f4000 00000000  ..@.......@.....
+```
+:::
+
+行吧，那么得出这么一张表：
+| `%rax` | 地址 | 
+| -- | -- |
+| 0 | `0x400f7c`|
+| 1 | `0x400fb9`|
+| 2 | `0x400f83`|
+| 3 | `0x400f8a`|
+| 4 | `0x400f91`|
+| 5 | `0x400f98`|
+| 6 | `0x400f9f`|
+| 7 | `0x400fa6`|
+
+
+凭直觉，我猜测这可能是个多解问题。假设我们的`0x8(%rsp)`是`0`，那么跳转到`0x400f7c`。
+那么会依次执行：
+```sh
+mov    $0xcf,%eax
+# jmp    400fbe <phase_3+0x7b>
+cmp    0xc(%rsp),%eax
+# je     400fc9 <phase_3+0x86>
+```
+
+如果 `je` 不满足条件。就会直接触发下一行的炸弹。
+
+`0xcf` == `0d207`。
+所以第二个数字应该输入 `207`！
+
+为了验证猜想，我们把所有可能的答案都列出来：
+
+| `0x8(%rsp)` | `0xc(%rsp)`|
+| -- | -- |
+| 0 | 207 |
+| 1 | 311 |
+| 2 | 707 |
+| 3 | 256 |
+| 4 | 389 |
+| 5 | 206 |
+| 6 | 682 |
+| 7 | 327 |
+
+```sh
+./bomb
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Border relations with Canada have never been better.
+Phase 1 defused. How about the next one?
+1 2 4 8 16 32
+That's number 2.  Keep going!
+0 207
+Halfway there!
+```
+
+## `phase_4()`
+
+```sh
+$ objdump -d bomb --disassemble=phase_4
+
+bomb：     文件格式 elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+000000000040100c <phase_4>:
+  40100c:       48 83 ec 18             sub    $0x18,%rsp
+  401010:       48 8d 4c 24 0c          lea    0xc(%rsp),%rcx
+  401015:       48 8d 54 24 08          lea    0x8(%rsp),%rdx
+  40101a:       be cf 25 40 00          mov    $0x4025cf,%esi
+  40101f:       b8 00 00 00 00          mov    $0x0,%eax
+  401024:       e8 c7 fb ff ff          call   400bf0 <__isoc99_sscanf@plt>
+  401029:       83 f8 02                cmp    $0x2,%eax
+  40102c:       75 07                   jne    401035 <phase_4+0x29>
+  40102e:       83 7c 24 08 0e          cmpl   $0xe,0x8(%rsp)
+  401033:       76 05                   jbe    40103a <phase_4+0x2e>
+  401035:       e8 00 04 00 00          call   40143a <explode_bomb>
+  40103a:       ba 0e 00 00 00          mov    $0xe,%edx
+  40103f:       be 00 00 00 00          mov    $0x0,%esi
+  401044:       8b 7c 24 08             mov    0x8(%rsp),%edi
+  401048:       e8 81 ff ff ff          call   400fce <func4>
+  40104d:       85 c0                   test   %eax,%eax
+  40104f:       75 07                   jne    401058 <phase_4+0x4c>
+  401051:       83 7c 24 0c 00          cmpl   $0x0,0xc(%rsp)
+  401056:       74 05                   je     40105d <phase_4+0x51>
+  401058:       e8 dd 03 00 00          call   40143a <explode_bomb>
+  40105d:       48 83 c4 18             add    $0x18,%rsp
+  401061:       c3                      ret
+```
