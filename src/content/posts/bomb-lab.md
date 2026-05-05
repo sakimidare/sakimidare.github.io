@@ -1284,4 +1284,108 @@ Disassembly of section .text:
   4010f3:       c3                      ret
 ```
 
-先写到这吧，懒了（）
+注意到有一行代码是
+```
+  40106a:       64 48 8b 04 25 28 00    mov    %fs:0x28,%rax
+```
+
+这是个啥（）
+
+这个寻址方式我从来没见过，让我搜一手：
+
+在 Stack OverFlow 上的帖子 [Why does this memory address %fs:0x28 ( fs\[0x28\] ) have a random value?](https://stackoverflow.com/questions/10325713/why-does-this-memory-address-fs0x28-fs0x28-have-a-random-value) 中，有一位答主解释了这行代码的作用：
+
+> Both the `FS` and `GS` registers can be used as base-pointer addresses in order to access special operating system data-structures. So what you're seeing is a value loaded at an offset from the value held in the `FS` register, and not bit manipulation of the contents of the `FS` register.
+>
+> Specifically what's taking place, is that `FS:0x28` on Linux is storing a special sentinel stack-guard value, and the code is performing a stack-guard check. For instance, if you look further in your code, you'll see that the value at `FS:0x28` is stored on the stack, and then the contents of the stack are recalled and an `XOR` is performed with the original value at `FS:0x28`. If the two values are equal, which means that the zero-bit has been set because `XOR`'ing two of the same values results in a zero-value, then we jump to the `test` routine, otherwise we jump to a special function that indicates that the stack was somehow corrupted, and the sentinel value stored on the stack was changed.
+>
+> If using GCC, this can be disabled with:
+>
+> ```
+> -fno-stack-protector
+> ```
+
+中文翻译如下：
+
+> `FS` 和 `GS` 寄存器都可以作为基址指针（Base-pointer addresses），用于访问操作系统特殊的内部数据结构。因此，你所看到的实际上是从 `FS` 寄存器保存的基地址加上一个偏移量后加载的数据，而不是对 `FS` 寄存器本身的内容进行位运算。
+> 
+> 具体来说，在 Linux 系统上，`FS:0x28` 的位置存储了一个特殊的哨兵值，称为 栈保护值（Stack-guard value / Canary），这段代码正在进行栈保护检查。例如，如果你查看代码的后续部分，会发现程序先将 `FS:0x28` 处的值存入栈中；函数结束前，再将栈中的值取出，与 `FS:0x28` 原有的值进行 `XOR`（异或）运算。
+> 
+> 如果两个值相等（这意味着异或运算的结果为 0，从而设置了零标志位 ZF），程序就会跳转到正常的测试或后续流程；否则，程序会跳转到一个特殊的函数，表明栈已经被破坏（缓冲区溢出），即存储在栈上的那个哨兵值被篡改了。
+> 
+> 如果你使用 GCC 编译器，可以通过以下参数禁用此功能：
+> ```
+> -fno-stack-protector
+> ```
+
+观察后续代码，确实有将 `%fs:0x28` 与 `%rax` 异或运算的逻辑，如下：
+
+```sh
+  4010de:       64 48 33 04 25 28 00    xor    %fs:0x28,%rax
+  4010e5:       00 00 
+  4010e7:       74 05                   je     4010ee <phase_5+0x8c>
+  4010e9:       e8 42 fa ff ff          call   400b30 <__stack_chk_fail@plt>
+```
+
+我们继续往下看，看到下面这一段：
+
+```sh
+  401073:       48 89 44 24 18          mov    %rax,0x18(%rsp)
+  401078:       31 c0                   xor    %eax,%eax
+  40107a:       e8 9c 02 00 00          call   40131b <string_length>
+  40107f:       83 f8 06                cmp    $0x6,%eax
+  401082:       74 4e                   je     4010d2 <phase_5+0x70>
+  401084:       e8 b1 03 00 00          call   40143a <explode_bomb>
+```
+前两行表示把之前存的那个 Canary 值压到栈里，并且把 `%eax` 清空。这也好理解，毕竟做校验嘛，不能到处留这个值。
+下面一行又出现了 `string_length`。 直觉告诉我们，`%rdi` 里面存的准是输入字符串，而且长度必须为 6，否则爆炸。
+
+那问题来了，这个字符串长度包不包含 `\0`？`phase_1` 蒙对了这个函数，但这里可不能蒙了，我们必须使用 gdb 来调试一手：
+
+```
+$ gdb bomb
+Reading symbols from bomb...
+(gdb) b *0x40107a             # 在 call 40131b <string_length> 处打断点
+Breakpoint 1 at 0x40107a 
+(gdb) r                       # 运行程序
+Starting program: /home/sakimidare/bomb/bomb 
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Border relations with Canada have never been better.
+Phase 1 defused. How about the next one?
+1 2 4 8 16 32
+That's number 2.  Keep going!
+0 207
+Halfway there!
+7 0
+So you got that one.  Try this one.
+123456                        # 输入一个 123456 看看效果
+
+Breakpoint 1, 0x000000000040107a in phase_5 ()
+(gdb) ni                      # 运行下一条指令 （即执行完整个 call）
+0x000000000040107f in phase_5 ()
+(gdb) i r eax                 # 立即查看寄存器 %eax 的值
+eax            0x6                 6
+(gdb) 
+```
+
+我们得出结论：`string_length` 函数返回的长度不包含 `\0`。也就是说，我们应该输入一个长度为 6 的字符串。
+
+```sh
+  401089:       eb 47                   jmp    4010d2 <phase_5+0x70>
+  ...
+  4010d2:       b8 00 00 00 00          mov    $0x0,%eax
+  4010d7:       eb b2                   jmp    40108b <phase_5+0x29>
+```
+
+```sh
+  40108b:       0f b6 0c 03             movzbl (%rbx,%rax,1),%ecx
+  40108f:       88 0c 24                mov    %cl,(%rsp)
+  401092:       48 8b 14 24             mov    (%rsp),%rdx
+  401096:       83 e2 0f                and    $0xf,%edx
+  401099:       0f b6 92 b0 24 40 00    movzbl 0x4024b0(%rdx),%edx
+  4010a0:       88 54 04 10             mov    %dl,0x10(%rsp,%rax,1)
+  4010a4:       48 83 c0 01             add    $0x1,%rax
+  4010a8:       48 83 f8 06             cmp    $0x6,%rax
+  4010ac:       75 dd                   jne    40108b <phase_5+0x29>
+```
