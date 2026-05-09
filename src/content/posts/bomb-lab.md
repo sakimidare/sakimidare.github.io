@@ -1389,3 +1389,200 @@ eax            0x6                 6
   4010a8:       48 83 f8 06             cmp    $0x6,%rax
   4010ac:       75 dd                   jne    40108b <phase_5+0x29>
 ```
+
+此时，`%rbx` 是 `%rdi` 里面的值，也就是输入的字符串地址。注意到这里新出现了一个寄存器 `%cl`。这是干啥的？
+
+~~（对不起写这一段的时候忘掉了 `%cl` 是 `rcx` 的低位）~~
+
+那就是说 `40108b` 把内存里那个字符串地址加上 `%rax` 的偏移量，得到的那个字节抠低位放到 `(%rsp)` 和 `%rdx` 去呗！
+
+那有个问题啊，`(%rsp)` 是刚刚从 `%cl` 复制过来的一个字节，`%rdx` 是一个双字。如果强行复制，那么不会导致高位（x86-64 是小端序）充满垃圾值吗？
+
+还好，下一行的 `and` 直接只保留了低位，把垃圾值舍弃了。
+
+看看 `0x4024b0` 里面是啥吧！
+
+
+```sh
+$ objdump -s -j .rodata bomb --start-address=0x4024b0
+
+bomb：     文件格式 elf64-x86-64
+
+Contents of section .rodata:
+ 4024b0 6d616475 69657273 6e666f74 7662796c  maduiersnfotvbyl
+```
+
+现在 `%edx` 中塞的是上文硬编码字符串偏移当前输入字符低两位的字符（好拗口）。例如第一个字符输入 `'H'` ，`'H' = 0x48`。低两位是 `0x8`，那么就会往 `edx` 里面存入 
+
+```sh
+maduiersnfotvbyl
+        ^
+```
+
+`'n'`。
+
+之后 `mov %dl,0x10(%rsp,%rax,1)` 往内存里压栈，`%rax` 自增 1，并判断 `%rax` 是否已自增到 6。如果自增到 6，那么跳出循环。
+
+```sh
+  4010ae:       c6 44 24 16 00          movb   $0x0,0x16(%rsp)
+  4010b3:       be 5e 24 40 00          mov    $0x40245e,%esi
+  4010b8:       48 8d 7c 24 10          lea    0x10(%rsp),%rdi
+  4010bd:       e8 76 02 00 00          call   401338 <strings_not_equal>
+  4010c2:       85 c0                   test   %eax,%eax
+  4010c4:       74 13                   je     4010d9 <phase_5+0x77>
+  4010c6:       e8 6f 03 00 00          call   40143a <explode_bomb>
+  4010cb:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
+  4010d0:       eb 07                   jmp    4010d9 <phase_5+0x77>
+  4010d2:       b8 00 00 00 00          mov    $0x0,%eax
+  4010d7:       eb b2                   jmp    40108b <phase_5+0x29>
+  4010d9:       48 8b 44 24 18          mov    0x18(%rsp),%rax
+  4010de:       64 48 33 04 25 28 00    xor    %fs:0x28,%rax
+  4010e5:       00 00 
+  4010e7:       74 05                   je     4010ee <phase_5+0x8c>
+  4010e9:       e8 42 fa ff ff          call   400b30 <__stack_chk_fail@plt>
+  4010ee:       48 83 c4 20             add    $0x20,%rsp
+  4010f2:       5b                      pop    %rbx
+  4010f3:       c3                      ret
+```
+
+第一行给末尾加上`\0`。
+
+`40245e` 的内容是
+
+```sh
+ 40245e 666c 79657273 00000000 00000000 0000 flyers..........
+```
+
+即 `flyers`。
+
+那么答案呼之欲出：
+
+按照之前说的方法，输入的字符串取 ASCII 最后一个字节，然后在固定字符串上做偏移。最后拼出来的字符串应该是 `flyers`。
+
+所以一个可能的答案是
+
+```
+IONEFG
+```
+
+```sh
+./bomb 
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Border relations with Canada have never been better.
+Phase 1 defused. How about the next one?
+1 2 4 8 16 32
+That's number 2.  Keep going!
+0 207
+Halfway there!
+7 0
+So you got that one.  Try this one.
+IONEFG
+Good work!  On to the next...
+```
+
+## `phase_6()`
+
+```sh
+$ objdump -d bomb --disassemble=phase_6                        
+
+bomb：     文件格式 elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+00000000004010f4 <phase_6>:
+  4010f4:       41 56                   push   %r14
+  4010f6:       41 55                   push   %r13
+  4010f8:       41 54                   push   %r12
+  4010fa:       55                      push   %rbp
+  4010fb:       53                      push   %rbx
+  4010fc:       48 83 ec 50             sub    $0x50,%rsp
+  401100:       49 89 e5                mov    %rsp,%r13
+  401103:       48 89 e6                mov    %rsp,%rsi
+  401106:       e8 51 03 00 00          call   40145c <read_six_numbers>
+  40110b:       49 89 e6                mov    %rsp,%r14
+  40110e:       41 bc 00 00 00 00       mov    $0x0,%r12d
+  401114:       4c 89 ed                mov    %r13,%rbp
+  401117:       41 8b 45 00             mov    0x0(%r13),%eax
+  40111b:       83 e8 01                sub    $0x1,%eax
+  40111e:       83 f8 05                cmp    $0x5,%eax
+  401121:       76 05                   jbe    401128 <phase_6+0x34>
+  401123:       e8 12 03 00 00          call   40143a <explode_bomb>
+  401128:       41 83 c4 01             add    $0x1,%r12d
+  40112c:       41 83 fc 06             cmp    $0x6,%r12d
+  401130:       74 21                   je     401153 <phase_6+0x5f>
+  401132:       44 89 e3                mov    %r12d,%ebx
+  401135:       48 63 c3                movslq %ebx,%rax
+  401138:       8b 04 84                mov    (%rsp,%rax,4),%eax
+  40113b:       39 45 00                cmp    %eax,0x0(%rbp)
+  40113e:       75 05                   jne    401145 <phase_6+0x51>
+  401140:       e8 f5 02 00 00          call   40143a <explode_bomb>
+  401145:       83 c3 01                add    $0x1,%ebx
+  401148:       83 fb 05                cmp    $0x5,%ebx
+  40114b:       7e e8                   jle    401135 <phase_6+0x41>
+  40114d:       49 83 c5 04             add    $0x4,%r13
+  401151:       eb c1                   jmp    401114 <phase_6+0x20>
+  401153:       48 8d 74 24 18          lea    0x18(%rsp),%rsi
+  401158:       4c 89 f0                mov    %r14,%rax
+  40115b:       b9 07 00 00 00          mov    $0x7,%ecx
+  401160:       89 ca                   mov    %ecx,%edx
+  401162:       2b 10                   sub    (%rax),%edx
+  401164:       89 10                   mov    %edx,(%rax)
+  401166:       48 83 c0 04             add    $0x4,%rax
+  40116a:       48 39 f0                cmp    %rsi,%rax
+  40116d:       75 f1                   jne    401160 <phase_6+0x6c>
+  40116f:       be 00 00 00 00          mov    $0x0,%esi
+  401174:       eb 21                   jmp    401197 <phase_6+0xa3>
+  401176:       48 8b 52 08             mov    0x8(%rdx),%rdx
+  40117a:       83 c0 01                add    $0x1,%eax
+  40117d:       39 c8                   cmp    %ecx,%eax
+  40117f:       75 f5                   jne    401176 <phase_6+0x82>
+  401181:       eb 05                   jmp    401188 <phase_6+0x94>
+  401183:       ba d0 32 60 00          mov    $0x6032d0,%edx
+  401188:       48 89 54 74 20          mov    %rdx,0x20(%rsp,%rsi,2)
+  40118d:       48 83 c6 04             add    $0x4,%rsi
+  401191:       48 83 fe 18             cmp    $0x18,%rsi
+  401195:       74 14                   je     4011ab <phase_6+0xb7>
+  401197:       8b 0c 34                mov    (%rsp,%rsi,1),%ecx
+  40119a:       83 f9 01                cmp    $0x1,%ecx
+  40119d:       7e e4                   jle    401183 <phase_6+0x8f>
+  40119f:       b8 01 00 00 00          mov    $0x1,%eax
+  4011a4:       ba d0 32 60 00          mov    $0x6032d0,%edx
+  4011a9:       eb cb                   jmp    401176 <phase_6+0x82>
+  4011ab:       48 8b 5c 24 20          mov    0x20(%rsp),%rbx
+  4011b0:       48 8d 44 24 28          lea    0x28(%rsp),%rax
+  4011b5:       48 8d 74 24 50          lea    0x50(%rsp),%rsi
+  4011ba:       48 89 d9                mov    %rbx,%rcx
+  4011bd:       48 8b 10                mov    (%rax),%rdx
+  4011c0:       48 89 51 08             mov    %rdx,0x8(%rcx)
+  4011c4:       48 83 c0 08             add    $0x8,%rax
+  4011c8:       48 39 f0                cmp    %rsi,%rax
+  4011cb:       74 05                   je     4011d2 <phase_6+0xde>
+  4011cd:       48 89 d1                mov    %rdx,%rcx
+  4011d0:       eb eb                   jmp    4011bd <phase_6+0xc9>
+  4011d2:       48 c7 42 08 00 00 00    movq   $0x0,0x8(%rdx)
+  4011d9:       00 
+  4011da:       bd 05 00 00 00          mov    $0x5,%ebp
+  4011df:       48 8b 43 08             mov    0x8(%rbx),%rax
+  4011e3:       8b 00                   mov    (%rax),%eax
+  4011e5:       39 03                   cmp    %eax,(%rbx)
+  4011e7:       7d 05                   jge    4011ee <phase_6+0xfa>
+  4011e9:       e8 4c 02 00 00          call   40143a <explode_bomb>
+  4011ee:       48 8b 5b 08             mov    0x8(%rbx),%rbx
+  4011f2:       83 ed 01                sub    $0x1,%ebp
+  4011f5:       75 e8                   jne    4011df <phase_6+0xeb>
+  4011f7:       48 83 c4 50             add    $0x50,%rsp
+  4011fb:       5b                      pop    %rbx
+  4011fc:       5d                      pop    %rbp
+  4011fd:       41 5c                   pop    %r12
+  4011ff:       41 5d                   pop    %r13
+  401201:       41 5e                   pop    %r14
+  401203:       c3                      ret
+
+Disassembly of section .fini:
+```
