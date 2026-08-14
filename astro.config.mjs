@@ -48,7 +48,7 @@ export default defineConfig({
         globalInstance: true,
 		}), icon({
         include: {
-            "preprocess: vitePreprocess(),": ["*"],
+            "material-symbols": ["*"],
             "fa6-brands": ["*"],
             "fa6-regular": ["*"],
             "fa6-solid": ["*"],

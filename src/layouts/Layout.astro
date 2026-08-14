@@ -112,8 +112,15 @@ const bannerOffset =
 
 		<!-- Set the theme before the page is rendered to avoid a flash -->
 		<script is:inline define:vars={{DEFAULT_THEME, LIGHT_MODE, DARK_MODE, AUTO_MODE, BANNER_HEIGHT_EXTEND, PAGE_WIDTH, configHue}}>
+			// localStorage 在隐私模式下可能抛异常，这里兜底回默认值
+			let theme = DEFAULT_THEME;
+			let hue = configHue;
+			try {
+				theme = localStorage.getItem('theme') || DEFAULT_THEME;
+				hue = localStorage.getItem('hue') || configHue;
+			} catch (e) {}
+
 			// Load the theme from local storage
-			const theme = localStorage.getItem('theme') || DEFAULT_THEME;
 			switch (theme) {
 				case LIGHT_MODE:
 					document.documentElement.classList.remove('dark');
@@ -130,7 +137,6 @@ const bannerOffset =
 			}
 
 			// Load the hue from local storage
-			const hue = localStorage.getItem('hue') || configHue;
 			document.documentElement.style.setProperty('--hue', hue);
 
 			// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
@@ -287,6 +293,8 @@ function loadHue() {
 	setHue(getHue())
 }
 
+let katexObserver: IntersectionObserver | null = null;
+
 function initCustomScrollbar() {
 	const bodyElement = document.querySelector('body');
 	if (!bodyElement) return;
@@ -338,7 +346,9 @@ function initCustomScrollbar() {
 		element.setAttribute('data-scrollbar-initialized', 'true');
 	};
 
-	const katexObserver = new IntersectionObserver((entries, observer) => {
+	// swup 换页时会重复调用本函数，释放旧的 observer 避免泄漏
+	katexObserver?.disconnect();
+	katexObserver = new IntersectionObserver((entries, observer) => {
 		entries.forEach(entry => {
 			if (entry.isIntersecting) {
 			processKatexElement(entry.target as HTMLElement);
@@ -348,7 +358,7 @@ function initCustomScrollbar() {
 	}, katexObserverOptions);
 
 	katexElements.forEach(element => {
-		katexObserver.observe(element);
+		katexObserver?.observe(element);
 	});
 }
 
@@ -427,15 +437,9 @@ const setup = () => {
 			toc.classList.add('toc-not-ready')
 		}
 	});
-	window.swup.hooks.on('page:view', () => {
-		// hide the temp high element when the transition is done
-		const heightExtend = document.getElementById('page-height-extend')
-		if (heightExtend) {
-			heightExtend.classList.remove('hidden')
-		}
-	});
 	window.swup.hooks.on('visit:end', (_visit: {to: {url: string}}) => {
 		setTimeout(() => {
+			// hide the temp high element when the transition is done
 			const heightExtend = document.getElementById('page-height-extend')
 			if (heightExtend) {
 				heightExtend.classList.add('hidden')

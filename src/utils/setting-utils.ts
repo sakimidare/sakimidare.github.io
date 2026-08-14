@@ -7,6 +7,23 @@ import {
 import { expressiveCodeConfig } from "@/config";
 import type { LIGHT_DARK_MODE } from "@/types/config";
 
+// localStorage 在隐私模式/禁用存储时可能抛异常，这里做安全封装
+function safeGetItem(key: string): string | null {
+	try {
+		return localStorage.getItem(key);
+	} catch {
+		return null;
+	}
+}
+
+function safeSetItem(key: string, value: string): void {
+	try {
+		localStorage.setItem(key, value);
+	} catch {
+		// ignore: storage unavailable (e.g. privacy mode)
+	}
+}
+
 export function getDefaultHue(): number {
 	const fallback = "250";
 	const configCarrier = document.getElementById("config-carrier");
@@ -14,12 +31,16 @@ export function getDefaultHue(): number {
 }
 
 export function getHue(): number {
-	const stored = localStorage.getItem("hue");
-	return stored ? Number.parseInt(stored, 10) : getDefaultHue();
+	const stored = safeGetItem("hue");
+	if (stored === null) {
+		return getDefaultHue();
+	}
+	const parsed = Number.parseInt(stored, 10);
+	return Number.isNaN(parsed) ? getDefaultHue() : parsed;
 }
 
 export function setHue(hue: number): void {
-	localStorage.setItem("hue", String(hue));
+	safeSetItem("hue", String(hue));
 	const r = document.querySelector(":root") as HTMLElement;
 	if (!r) {
 		return;
@@ -52,10 +73,10 @@ export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
 }
 
 export function setTheme(theme: LIGHT_DARK_MODE): void {
-	localStorage.setItem("theme", theme);
+	safeSetItem("theme", theme);
 	applyThemeToDocument(theme);
 }
 
 export function getStoredTheme(): LIGHT_DARK_MODE {
-	return (localStorage.getItem("theme") as LIGHT_DARK_MODE) || DEFAULT_THEME;
+	return (safeGetItem("theme") as LIGHT_DARK_MODE | null) || DEFAULT_THEME;
 }

@@ -3,7 +3,7 @@ import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import Icon from "@iconify/svelte";
 import { url } from "@utils/url-utils.ts";
-import { onMount } from "svelte";
+import { onDestroy, onMount } from "svelte";
 import type { SearchResult } from "@/global";
 
 let keywordDesktop = "";
@@ -12,6 +12,10 @@ let result: SearchResult[] = [];
 let isSearching = false;
 let pagefindLoaded = false;
 let initialized = false;
+
+// 防抖计时器与请求序号，避免每击键一次搜索、旧响应覆盖新结果
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let searchSequence = 0;
 
 const fakeResult: SearchResult[] = [
 	{
@@ -49,6 +53,7 @@ const setPanelVisibility = (show: boolean, isDesktop: boolean): void => {
 
 const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 	if (!keyword) {
+		searchSequence++;
 		setPanelVisibility(false, isDesktop);
 		result = [];
 		return;
@@ -59,6 +64,7 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 	}
 
 	isSearching = true;
+	const seq = ++searchSequence;
 
 	try {
 		let searchResults: SearchResult[] = [];
@@ -75,15 +81,34 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 			console.error("Pagefind is not available in production environment.");
 		}
 
+		// 丢弃过期响应，避免旧结果覆盖新结果
+		if (seq !== searchSequence) {
+			return;
+		}
 		result = searchResults;
 		setPanelVisibility(result.length > 0, isDesktop);
 	} catch (error) {
+		if (seq !== searchSequence) {
+			return;
+		}
 		console.error("Search error:", error);
 		result = [];
 		setPanelVisibility(false, isDesktop);
 	} finally {
-		isSearching = false;
+		if (seq === searchSequence) {
+			isSearching = false;
+		}
 	}
+};
+
+const debouncedSearch = (keyword: string, isDesktop: boolean): void => {
+	if (debounceTimer) {
+		clearTimeout(debounceTimer);
+	}
+	debounceTimer = setTimeout(() => {
+		debounceTimer = null;
+		search(keyword, isDesktop);
+	}, 200);
 };
 
 onMount(() => {
@@ -126,16 +151,18 @@ onMount(() => {
 });
 
 $: if (initialized && keywordDesktop) {
-	(async () => {
-		await search(keywordDesktop, true);
-	})();
+	debouncedSearch(keywordDesktop, true);
 }
 
 $: if (initialized && keywordMobile) {
-	(async () => {
-		await search(keywordMobile, false);
-	})();
+	debouncedSearch(keywordMobile, false);
 }
+
+onDestroy(() => {
+	if (debounceTimer) {
+		clearTimeout(debounceTimer);
+	}
+});
 </script>
 
 <!-- search bar for desktop view -->
@@ -144,8 +171,7 @@ $: if (initialized && keywordMobile) {
       dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
 ">
     <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
-    <input placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
-           class="transition-all pl-10 text-sm bg-transparent outline-0
+    <input placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}           class="transition-all pl-10 text-sm bg-transparent outline-0
          h-full w-40 active:w-60 focus:w-60 text-black/50 dark:text-white/50"
     >
 </div>
