@@ -318,6 +318,20 @@ let result = a
 
 我没解释，你看得懂吗？这就是好接口的魅力。
 
+```rs
+pub const fn and_then<U, F>(self, op: F) -> Result<U, E>
+    where
+        F: [const] FnOnce(T) -> Result<U, E> + [const] Destruct,
+{
+    match self {
+        Ok(t) => op(t),
+        Err(e) => Err(e),
+    }
+}
+```
+
+`and_then` 让 Ok(t) 传给闭包运行，Err(e) 直接保持原样，短路透传，正好符合 `and_then` 函数名语义。其他语言有 `>>=`、`flatMap`、`bind` 等叫法，个人感觉都没有 `and_then` 清晰。漂亮的代码靠清晰的语义取胜，而非靠所谓炫技语法糖。
+
 ## 代码不言自明——少写注释
 很多人会把注释的覆盖率当作评判一个项目的代码质量的标准。且看下面一段代码：
 
