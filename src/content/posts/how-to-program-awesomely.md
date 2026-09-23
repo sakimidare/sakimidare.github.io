@@ -310,7 +310,7 @@ if a.is_ok() {
 
 但如果我们充分利用所谓自函子范畴上的幺半群，让 `Result` 的 `and_then()` 来解释代码逻辑，那么这段代码将变成
 
-```
+```rs
 let result = a
     .and_then(parse_html)
     .and_then(parse_json);
