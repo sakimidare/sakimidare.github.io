@@ -9,9 +9,13 @@ draft: false
 lang: ''
 ---
 
+有人说，AI 时代，没人自己写代码。如果有人说自己必须古法写代码才能解决问题，那么一定是他的模型用得不够好。他肯定是少装了什么 Skill 或者没给 A\ 充钱。不错，我承认现在没几个人写代码；但是拿着 Vibe Coding 出来的 AI Slop 往别人的项目乱发 PR，或者往小红书上抱怨自己的“产品”无人问津，就是“程序员”自己的问题了。我们需要学习如何漂亮地写代码，至少掌握鉴赏漂亮代码的能力。
+
 # 让编程语言有自然语言般的表现力
 
-## 相信编译器，流程本可更简单
+编程语言是一种语言。不论是自然语言还是形式语言，都有优美和糟糕之分。我们会对优美的文章大加赞叹，而排斥粗鄙之语。我们会对严谨的数学推理和优美的数学工具感兴趣，而对诡辩不感兴趣甚至感到恶心。编程语言也是如此。我们喜爱易读、如自然语言般流畅的代码风格，而拒绝 Review 那些耦合、晦涩、`i++ + ++i`的屎山。
+
+## 让流程自解释
 
 如果我们要将装有学生成绩的数组中及格线以上的学生过滤出来，然后按从分数低到高排列，我们该怎么做？
 
@@ -65,7 +69,7 @@ struct Student {
 std::vector filter_and_sort(const std::vector& src) {
     std::vector des;
     for (const auto& student : src) {
-        if (student.score >= PASS) continue;
+        if (student.score < PASS) continue;
         des.push_back(student);
     }
     
@@ -77,7 +81,7 @@ std::vector filter_and_sort(const std::vector& src) {
 }
 ```
 
-我们通过阅读代码并分析逻辑，发现这 `for` 承担了遍历 src 中每一个 student，比较及格线并过滤的职责。单从可读性上看，我们能不能做得更好？
+我们通过阅读代码并分析逻辑，发现这个 `for` 承担了遍历 `src` 中每一个 student，比较及格线并过滤的职责。单从可读性上看，我们能不能做得更好？
 
 ```c++
 #include <vector>
@@ -264,7 +268,7 @@ int main() {
 
 在 `-O2` 优化程度下，我们期望他输出 `1`，可是他输出了 `2`。但如果我们严格保证两个指针指向的内存不同，那么这个函数不会有任何计算问题。
 
-可是不凑巧的是，普通 C 程序员并不会使用 `restrict` 来优化程序性能，AI 在没有提示词的情况下也不可能写出 `restrict`，因此编译器难以优化这些 C 语言程序。
+可是不凑巧的是，普通 C 程序员并不会使用 `restrict` 来优化程序性能，AI 在没有提示词的情况下也不会主动写出 `restrict`，因此编译器难以优化这些 C 语言程序。
 
 得益于 Rust 的“多读单写”原则，同一时间只可能出现某一个变量的唯一可变借用，所以当我们写出
 
@@ -274,14 +278,47 @@ fn compute(input: &i32, output: &mut i32);
 
 这样的签名时，编译器立即能够知道，`input` 和 `output` 不可能指向同一块内存。指向同一块内存的两个可变借用只可能在 unsafe 代码中出现，编译器能够大大方方优化，不必顾及先前提到的 memory aliasing 问题。
 
+## 设计好接口，让你的代码变成文章
 
+我们假设
+- `a: Html`
+- `b: Json`
+- `c: Structure`
+- `parse_html: Html -> Result<Json, E>`
+- `parse_json: Json -> Result<Structure, E>`
 
-## 设计好接口，让你的函数做该做的事
+```rs
+if a.is_ok() {
+    let a = a.unwrap();
 
+    let b = parse_html(a);
 
-# 代码不言自明
+    if b.is_ok() {
+        let b = b.unwrap();
 
-## 少写注释
+        let c = parse_json(b);
+
+        if c.is_ok() {
+            let c = c.unwrap();
+            ...
+        }
+    }
+}
+```
+
+这段代码显然看着很丑。
+
+但如果我们充分利用所谓自函子范畴上的幺半群，让 `Result` 的 `and_then()` 来解释代码逻辑，那么这段代码将变成
+
+```
+let result = a
+    .and_then(parse_html)
+    .and_then(parse_json);
+```
+
+我没解释，你看得懂吗？这就是好接口的魅力。
+
+## 代码不言自明——少写注释
 很多人会把注释的覆盖率当作评判一个项目的代码质量的标准。且看下面一段代码：
 
 ```c
@@ -299,8 +336,6 @@ int sum(int* array, size_t size) {
  */
 ```
 
-## 
+## 不要打断读者的心流状态——少用无意义的中间变量
 
 # 留下代码六尺巷
-
-# 
