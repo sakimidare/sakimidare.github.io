@@ -115,7 +115,7 @@ export default defineConfig({
                 rehypeComponents,
                 {
                     components: {
-                        hyperlink: HyperlinkCardComponent,
+                        link: HyperlinkCardComponent,
                         github: GithubCardComponent,
                         note: (x, y) => AdmonitionComponent(x, y, "note"),
                         tip: (x, y) => AdmonitionComponent(x, y, "tip"),

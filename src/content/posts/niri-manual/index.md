@@ -11,7 +11,8 @@ lang: ''
 
 # Niri 简介
 
-:::hyperlink{href="https://wiki.archlinux.org/title/Niri" title="Niri" avatar="https://wiki.archlinuxcn.org/favicon.ico" description="Arch Linux 的 Niri 介绍"}
+:::link{href="https://wiki.archlinux.org/title/Niri" title="Niri" avatar="https://wiki.archlinuxcn.org/favicon.ico"}
+Arch Linux 的 Niri 介绍
 :::
 
 Niri 和 我们熟悉的 Windows 桌面或 KDE Plasma 不同。他是一个水平式排列的窗口管理器。每当新打开一个窗口，便会显示在当前窗口的右侧（而非像 Windows 那样堆叠）。在 Niri 中，没有开始按钮、没有最小化、没有最大化，有的只是随心所欲用快捷键和触摸板切换窗口的流畅操作和炫酷动画！
@@ -42,7 +43,8 @@ Niri 和 我们熟悉的 Windows 桌面或 KDE Plasma 不同。他是一个水�
 
 开始之前，放几个链接：
 
-:::hyperlink{href="https://yalter.github.io/niri/Getting-Started.html" title="Niri" avatar="https://yalter.github.io/favicon.ico" description="Niri 项目维护者的教程"}
+:::link{href="https://yalter.github.io/niri/Getting-Started.html" title="Niri" avatar="https://yalter.github.io/favicon.ico"}
+Niri 项目维护者的教程
 :::
 
 :::github{repo="YaLTeR/niri"}
