@@ -99,5 +99,8 @@ export type BlogPostData = {
 };
 
 export type ExpressiveCodeConfig = {
+	/** Theme used in dark mode */
 	theme: string;
+	/** Theme used in light mode. Falls back to `theme` when omitted. */
+	themeLight?: string;
 };
